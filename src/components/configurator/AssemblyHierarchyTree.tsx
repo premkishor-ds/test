@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   PlusCircle,
   FolderTree,
+  Sparkles,
 } from "lucide-react";
 
 export const AssemblyHierarchyTree: React.FC = () => {
@@ -31,6 +32,7 @@ export const AssemblyHierarchyTree: React.FC = () => {
   const isolatedMountingPointId = useConfiguratorStore((s) => s.isolatedMountingPointId);
   const setIsolatedComponent = useConfiguratorStore((s) => s.setIsolatedComponent);
   const setActiveLeftTab = useConfiguratorStore((s) => s.setActiveLeftTab);
+  const loadRecommendedBaseline = useConfiguratorStore((s) => s.loadRecommendedBaseline);
 
   // Group expansion states
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
@@ -233,6 +235,27 @@ export const AssemblyHierarchyTree: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* Empty Chassis / Scratch Assembly Guidance Card */}
+      {Object.keys(installedComponents).length === 0 && (
+        <div className="mt-2.5 p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-800/50 text-xs">
+          <div className="font-semibold text-white mb-0.5 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Configuring from Scratch</span>
+          </div>
+          <p className="text-[11px] text-slate-400 leading-snug">
+            All mounting points are open. Drag components from the Parts Library onto the 3D machine to build your configuration.
+          </p>
+          <button
+            type="button"
+            onClick={loadRecommendedBaseline}
+            className="mt-2 w-full py-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 text-[11px] font-medium border border-slate-700 transition flex items-center justify-center gap-1"
+          >
+            <Boxes className="w-3 h-3 text-cyan-400" />
+            <span>Load Factory Recommended Baseline</span>
+          </button>
+        </div>
+      )}
 
       {/* Root Machine Node */}
       <div className="mt-2.5">

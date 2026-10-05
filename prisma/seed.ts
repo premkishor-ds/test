@@ -3,9 +3,9 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding 3D Industrial Machine Configurator Database...");
+  console.log("🌱 Seeding 3D Industrial Machine Configurator Database (10 Machines + Complete Ecosystem)...");
 
-  // 1. Clean existing records
+  // 1. Clean existing records in correct foreign-key dependency order
   await prisma.quote.deleteMany();
   await prisma.bOMItem.deleteMany();
   await prisma.configurationComponent.deleteMany();
@@ -21,14 +21,14 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.user.deleteMany();
 
-  // 2. Users
+  // 2. Users (Admin and Customer)
   const adminUser = await prisma.user.create({
     data: {
       email: "admin@industrial-vortex.com",
       name: "System Administrator",
       company: "VORTEX Industrial Automation",
       phone: "+91 98765 43210",
-      passwordHash: "sha256:admin123", // In a real app hashed with bcrypt
+      passwordHash: "sha256:admin123",
       role: "ADMIN",
     },
   });
@@ -46,67 +46,34 @@ async function main() {
 
   console.log("✓ Created Users (Admin & Customer)");
 
-  // 3. Categories
-  const catMotors = await prisma.componentCategory.create({
-    data: {
-      name: "Drive Motors",
-      slug: "motors",
-      description: "Heavy-duty electric induction motors and variable frequency drive systems.",
-      icon: "Zap",
-      sortOrder: 1,
-    },
-  });
+  // 3. Categories (10 Industrial Categories)
+  const categoriesData = [
+    { name: "Drive Motors", slug: "motors", description: "Heavy-duty electric induction motors and variable frequency drive systems.", icon: "Zap", sortOrder: 1 },
+    { name: "Conveyor Belts & Beds", slug: "conveyors", description: "Modular PVC, high-tensile fabric, and steel roller conveyor bed assemblies.", icon: "Boxes", sortOrder: 2 },
+    { name: "Sensors & Telemetry", slug: "sensors", description: "Photoelectric, inductive proximity, and laser telemetry sensors.", icon: "Activity", sortOrder: 3 },
+    { name: "Control Cabinets & HMI", slug: "controls", description: "Industrial PLC automation enclosures, touchscreen HMIs, and power cabinets.", icon: "Cpu", sortOrder: 4 },
+    { name: "Safety & Emergency Systems", slug: "safety", description: "OSHA-certified interlocking steel cages, light curtains, and emergency stops.", icon: "ShieldAlert", sortOrder: 5 },
+    { name: "Machining Spindles & Grippers", slug: "tooling", description: "High-RPM electro-spindles, tool magazines, pneumatic and vacuum end-effectors.", icon: "Wrench", sortOrder: 6 },
+    { name: "Kinematic & Articulated Arms", slug: "robotics", description: "6-axis articulated robot arms and high-speed carbon fiber delta spider arms.", icon: "Bot", sortOrder: 7 },
+    { name: "Lasers, Probes & Machine Vision", slug: "optics-laser", description: "Fiber laser welding heads, scanning touch probes, 4K telecentric vision, and safety LiDARs.", icon: "Eye", sortOrder: 8 },
+    { name: "Hydraulic & Power Actuators", slug: "actuators", description: "Heavy hydraulic cylinders, high-torque extruder screws, smart traction battery packs, and mist filters.", icon: "Gauge", sortOrder: 9 },
+    { name: "Feeders & Pallet Handling", slug: "material-feed", description: "Automatic empty pallet dispensers, coil strip servo feeders, and bulk hopper feeds.", icon: "Layers", sortOrder: 10 },
+  ];
 
-  const catConveyors = await prisma.componentCategory.create({
-    data: {
-      name: "Conveyor Belts & Beds",
-      slug: "conveyors",
-      description: "Modular PVC, high-tensile fabric, and steel roller conveyor bed assemblies.",
-      icon: "Boxes",
-      sortOrder: 2,
-    },
-  });
+  const catMap: Record<string, any> = {};
+  for (const cat of categoriesData) {
+    catMap[cat.slug] = await prisma.componentCategory.create({ data: cat });
+  }
 
-  const catSensors = await prisma.componentCategory.create({
-    data: {
-      name: "Sensors & Telemetry",
-      slug: "sensors",
-      description: "Photoelectric, inductive proximity, and laser inspection telemetry sensors.",
-      icon: "Activity",
-      sortOrder: 3,
-    },
-  });
+  console.log("✓ Created 10 Component Categories");
 
-  const catControls = await prisma.componentCategory.create({
-    data: {
-      name: "Control Cabinets & HMI",
-      slug: "controls",
-      description: "Industrial PLC automation enclosures, touchscreen HMIs, and power cabinets.",
-      icon: "Cpu",
-      sortOrder: 4,
-    },
-  });
-
-  const catSafety = await prisma.componentCategory.create({
-    data: {
-      name: "Safety & Emergency Systems",
-      slug: "safety",
-      description: "OSHA-certified interlocking steel cages, light curtains, and emergency stops.",
-      icon: "ShieldAlert",
-      sortOrder: 5,
-    },
-  });
-
-  console.log("✓ Created Component Categories");
-
-  // 4. Machine: MX-500
-  const machineMX500 = await prisma.machine.create({
-    data: {
+  // 4. The 10 Machines
+  const machinesData = [
+    {
       slug: "mx-500",
       name: "MX-500 Modular Industrial Conveyor",
       modelNumber: "MX-500-HD",
-      description:
-        "High-performance modular conveyor system designed for rapid integration into automated assembly, packaging, and logistics lines. Features precision alignment mounting points, heavy-duty extruded aluminum & powder-coated structural steel frame, and scalable motor torque options.",
+      description: "High-performance modular conveyor system designed for rapid integration into automated assembly, packaging, and logistics lines. Features precision alignment mounting points, heavy-duty extruded aluminum & powder-coated structural steel frame, and scalable motor torque options.",
       category: "Conveyors",
       basePrice: 200000,
       currency: "INR",
@@ -115,23 +82,16 @@ async function main() {
       powerRequirements: "415V 3-Phase, 50/60Hz, 16A",
       thumbnailUrl: "/assets/machines/mx-500.png",
       isActive: true,
-      versions: {
-        create: [
-          { versionNumber: "v1.0.0", notes: "Initial production release" },
-          { versionNumber: "v2.1.0", notes: "Added quick-mount sensor brackets and 10HP power support" },
-        ],
-      },
+      versions: [
+        { versionNumber: "v1.0.0", notes: "Initial production release" },
+        { versionNumber: "v2.1.0", notes: "Added quick-mount sensor brackets and 10HP power support" },
+      ],
     },
-  });
-
-  // Machine: RX-900 (Second machine for selection showcase)
-  const machineRX900 = await prisma.machine.create({
-    data: {
+    {
       slug: "rx-900",
       name: "RX-900 Robotic Assembly Workcell",
       modelNumber: "RX-900-6AXIS",
-      description:
-        "High-speed 6-axis robotic articulation cell with modular tooling mounts, vision inspection mounting, safety light curtains, and integrated workpiece pallet handling.",
+      description: "High-speed 6-axis robotic articulation cell with modular tooling mounts, vision inspection mounting, safety light curtains, and integrated workpiece pallet handling.",
       category: "Robotics",
       basePrice: 650000,
       currency: "INR",
@@ -140,179 +100,154 @@ async function main() {
       powerRequirements: "415V 3-Phase, 50Hz, 32A",
       thumbnailUrl: "/assets/machines/rx-900.png",
       isActive: true,
-      versions: {
-        create: [{ versionNumber: "v1.0.0", notes: "Standard 6-axis cell" }],
+      versions: [{ versionNumber: "v1.0.0", notes: "Standard 6-axis workcell platform" }],
+    },
+    {
+      slug: "cnc-3000",
+      name: "CNC-3000 5-Axis Heavy Milling Center",
+      modelNumber: "CNC-3000-5AX",
+      description: "Ultra-rigid mineral-casting 5-axis vertical machining center engineered for aerospace-grade titanium and steel die mold manufacturing. Features dual-gantry linear motor drives, integrated 24-station tool carousel, and high-efficiency coolant chip management.",
+      category: "Machining",
+      basePrice: 1450000,
+      currency: "INR",
+      baseWeight: 3800,
+      baseDimensions: "3400 x 2800 x 2900 mm",
+      powerRequirements: "415V 3-Phase, 50Hz, 63A",
+      thumbnailUrl: "/assets/machines/cnc-3000.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "High-torque spindle release" }],
+    },
+    {
+      slug: "pk-1200",
+      name: "PK-1200 High-Speed Delta Pick & Place Robot",
+      modelNumber: "PK-1200-DELTA",
+      description: "Kinematic parallel robot cell with carbon fiber spider arms capable of 180 picks per minute. Optimized for food packaging, pharmaceutical sorting, and high-speed electronics assembly with continuous conveyor visual line tracking.",
+      category: "Packaging & Sorting",
+      basePrice: 820000,
+      currency: "INR",
+      baseWeight: 350,
+      baseDimensions: "1800 x 1800 x 2100 mm",
+      powerRequirements: "415V 3-Phase, 50Hz, 20A",
+      thumbnailUrl: "/assets/machines/pk-1200.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "Delta spider high-acceleration model" }],
+    },
+    {
+      slug: "agv-500",
+      name: "AGV-500 Autonomous Mobile Tugger",
+      modelNumber: "AGV-500-TUG",
+      description: "Natural-navigation AMR tugger platform engineered for 24/7 factory floor intralogistics. Equipped with dual 360-degree safety LiDARs, 500kg tow rating, swappable 48V LiFePO4 battery pack, and automated magnetic pin hitch.",
+      category: "Intralogistics",
+      basePrice: 680000,
+      currency: "INR",
+      baseWeight: 280,
+      baseDimensions: "1650 x 920 x 480 mm",
+      powerRequirements: "48V DC 100Ah LiFePO4 (230V Fast Charger)",
+      thumbnailUrl: "/assets/machines/agv-500.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "Fleet SLAM LiDAR navigation release" }],
+    },
+    {
+      slug: "inj-450",
+      name: "INJ-450 Hydraulic-Electric Injection Molding Machine",
+      modelNumber: "INJ-450-SERVO",
+      description: "450-ton hybrid servo-hydraulic plastic injection molding press. Features precision 5-point double toggle clamping, bimetallic nitrided plasticizing screw barrel, multi-zone PID heating, and automated part takeout robot arm interface.",
+      category: "Polymer Processing",
+      basePrice: 2100000,
+      currency: "INR",
+      baseWeight: 6200,
+      baseDimensions: "5800 x 1850 x 2300 mm",
+      powerRequirements: "415V 3-Phase, 50Hz, 100A",
+      thumbnailUrl: "/assets/machines/inj-450.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "450T high-volume clamping edition" }],
+    },
+    {
+      slug: "wld-600",
+      name: "WLD-600 Robotic Fiber Laser Welding Cell",
+      modelNumber: "WLD-600-FIBER",
+      description: "Fully-enclosed Class-1 laser welding production workcell. Includes 4kW continuous fiber laser resonator, dual-axis rotary servo positioner table, high-flow fume extraction filtration, and automated seam-tracking optical vision.",
+      category: "Welding & Fabrication",
+      basePrice: 1850000,
+      currency: "INR",
+      baseWeight: 1850,
+      baseDimensions: "3100 x 2600 x 2400 mm",
+      powerRequirements: "415V 3-Phase, 50Hz, 50A",
+      thumbnailUrl: "/assets/machines/wld-600.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "Continuous 4kW fiber laser configuration" }],
+    },
+    {
+      slug: "plz-800",
+      name: "PLZ-800 High-Payload End-of-Line Palletizer",
+      modelNumber: "PLZ-800-PALLET",
+      description: "Heavy-duty gantry palletizing cell engineered to stack corrugated boxes, bags, and totes up to 800kg per payload. Features dual pallet loading bays, pneumatic layer clamp gripper, and automatic empty pallet magazine dispenser.",
+      category: "Material Handling",
+      basePrice: 1200000,
+      currency: "INR",
+      baseWeight: 2400,
+      baseDimensions: "4200 x 3600 x 3400 mm",
+      powerRequirements: "415V 3-Phase, 50Hz, 40A",
+      thumbnailUrl: "/assets/machines/plz-800.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "End-of-line high-payload automation" }],
+    },
+    {
+      slug: "prs-250",
+      name: "PRS-250 Precision Servo-Mechanical Stamping Press",
+      modelNumber: "PRS-250-SERVO",
+      description: "250-ton straight-side tie-rod servo press for progressive die stamping, blanking, and sheet metal forming. Programmable slide stroke motion profile, hydraulic overload protector, and automatic coil strip servo feeder.",
+      category: "Metal Forming",
+      basePrice: 1600000,
+      currency: "INR",
+      baseWeight: 8500,
+      baseDimensions: "2600 x 2200 x 3600 mm",
+      powerRequirements: "415V 3-Phase, 50Hz, 80A",
+      thumbnailUrl: "/assets/machines/prs-250.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "Programmable servo stroke edition" }],
+    },
+    {
+      slug: "qax-100",
+      name: "QAX-100 Automated Coordinate Optical Inspection CMM",
+      modelNumber: "QAX-100-METRO",
+      description: "High-precision bridge coordinate measuring machine (CMM) built on a Grade 00 solid black granite surface plate with pneumatic air-bearing guideways. Features Renishaw 5-axis continuous scanning probe and 4K telecentric optical vision system.",
+      category: "Metrology & QA",
+      basePrice: 940000,
+      currency: "INR",
+      baseWeight: 1200,
+      baseDimensions: "1900 x 1600 x 2100 mm",
+      powerRequirements: "230V 1-Phase, 50Hz, 16A",
+      thumbnailUrl: "/assets/machines/qax-100.png",
+      isActive: true,
+      versions: [{ versionNumber: "v1.0.0", notes: "Sub-micron optical bridge CMM" }],
+    },
+  ];
+
+  const machineMap: Record<string, any> = {};
+  for (const m of machinesData) {
+    const { versions, ...mData } = m;
+    machineMap[m.slug] = await prisma.machine.create({
+      data: {
+        ...mData,
+        versions: {
+          create: versions,
+        },
       },
-    },
-  });
+    });
+  }
 
-  console.log("✓ Created Machines (MX-500, RX-900)");
+  console.log("✓ Created 10 Machinery Platforms");
 
-  // 5. Mounting Points for MX-500
-  const mpMotor = await prisma.mountingPoint.create({
-    data: {
-      pointId: "MOTOR_MOUNT_01",
-      machineId: machineMX500.id,
-      name: "Primary Drive Axle Mount",
-      description: "Direct-drive coupling mount for primary induction or servo motors.",
-      posX: -1.45,
-      posY: 0.55,
-      posZ: 0.65,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: -0.8,
-      explodedY: 0.3,
-      explodedZ: 0.8,
-      allowedCategorySlugsJson: JSON.stringify(["motors"]),
-      allowedPartNumbersJson: JSON.stringify(["MTR-002", "MTR-005", "MTR-010"]),
-      defaultPartNumber: "MTR-005",
-      maxQuantity: 1,
-    },
-  });
-
-  const mpConveyor = await prisma.mountingPoint.create({
-    data: {
-      pointId: "CONVEYOR_BED_01",
-      machineId: machineMX500.id,
-      name: "Main Conveyor Bed Deck",
-      description: "Central frame chassis mount for roller deck and belt track.",
-      posX: 0,
-      posY: 0.78,
-      posZ: 0,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: 0,
-      explodedY: 0.8,
-      explodedZ: 0,
-      allowedCategorySlugsJson: JSON.stringify(["conveyors"]),
-      allowedPartNumbersJson: JSON.stringify(["CVY-002", "CVY-004", "CVY-006"]),
-      defaultPartNumber: "CVY-004",
-      maxQuantity: 1,
-    },
-  });
-
-  const mpSensor1 = await prisma.mountingPoint.create({
-    data: {
-      pointId: "SENSOR_01",
-      machineId: machineMX500.id,
-      name: "Infeed Proximity Sensor Mount",
-      description: "Front-end optical bracket for pallet infeed detection.",
-      posX: -1.15,
-      posY: 0.95,
-      posZ: 0.42,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: -0.3,
-      explodedY: 0.5,
-      explodedZ: 0.4,
-      allowedCategorySlugsJson: JSON.stringify(["sensors"]),
-      allowedPartNumbersJson: JSON.stringify(["SEN-001", "SEN-002"]),
-      defaultPartNumber: "SEN-001",
-      maxQuantity: 1,
-    },
-  });
-
-  const mpSensor2 = await prisma.mountingPoint.create({
-    data: {
-      pointId: "SENSOR_02",
-      machineId: machineMX500.id,
-      name: "Outfeed Optical Telemetry Mount",
-      description: "Rear-end optical bracket for part exit counting and quality strobe.",
-      posX: 1.15,
-      posY: 0.95,
-      posZ: 0.42,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: 0.3,
-      explodedY: 0.5,
-      explodedZ: 0.4,
-      allowedCategorySlugsJson: JSON.stringify(["sensors"]),
-      allowedPartNumbersJson: JSON.stringify(["SEN-001", "SEN-002"]),
-      defaultPartNumber: "SEN-001",
-      maxQuantity: 1,
-    },
-  });
-
-  const mpControl = await prisma.mountingPoint.create({
-    data: {
-      pointId: "CONTROL_PANEL",
-      machineId: machineMX500.id,
-      name: "Central HMI / PLC Control Enclosure",
-      description: "Ergonomic side frame mounting post for industrial touch HMI and PLC.",
-      posX: 0.65,
-      posY: 1.15,
-      posZ: -0.65,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: 0.4,
-      explodedY: 0.2,
-      explodedZ: -0.7,
-      allowedCategorySlugsJson: JSON.stringify(["controls"]),
-      allowedPartNumbersJson: JSON.stringify(["CTL-001", "CTL-002"]),
-      defaultPartNumber: "CTL-001",
-      maxQuantity: 1,
-    },
-  });
-
-  const mpGuard = await prisma.mountingPoint.create({
-    data: {
-      pointId: "SAFETY_GUARD_01",
-      machineId: machineMX500.id,
-      name: "Drive Chain Shield Enclosure",
-      description: "Protective yellow steel mesh cowl shielding the motor drive sprocket.",
-      posX: -1.45,
-      posY: 0.6,
-      posZ: 0.8,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: -0.5,
-      explodedY: 0.2,
-      explodedZ: 0.6,
-      allowedCategorySlugsJson: JSON.stringify(["safety"]),
-      allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
-      defaultPartNumber: "SFT-001",
-      maxQuantity: 1,
-    },
-  });
-
-  const mpEstop = await prisma.mountingPoint.create({
-    data: {
-      pointId: "ESTOP_MOUNT_01",
-      machineId: machineMX500.id,
-      name: "Emergency Stop Push Button Console",
-      description: "Quick-access prominent red mushroom e-stop post.",
-      posX: 1.35,
-      posY: 1.05,
-      posZ: -0.45,
-      rotX: 0,
-      rotY: 0,
-      rotZ: 0,
-      explodedX: 0.3,
-      explodedY: 0.3,
-      explodedZ: -0.3,
-      allowedCategorySlugsJson: JSON.stringify(["safety"]),
-      allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
-      defaultPartNumber: "SFT-002",
-      maxQuantity: 1,
-    },
-  });
-
-  console.log("✓ Created 7 Mounting Points for MX-500");
-
-  // 6. The 12 Production-Ready Components
-  const componentsData = [
+  // 5. Components Library (29 Components across all categories)
+  const componentsList = [
+    // MOTORS
     {
       partNumber: "MTR-002",
       sku: "SKU-MTR-2HP-01",
       name: "2HP High-Efficiency Induction Motor",
       description: "Compact 1.5 kW 3-phase asynchronous motor with thermal protection, rated for 24/7 continuous duty.",
-      categoryId: catMotors.id,
+      categoryId: catMap["motors"].id,
       manufacturer: "Siemens MechDrive",
       price: 28000,
       currency: "INR",
@@ -320,20 +255,14 @@ async function main() {
       dimensions: "310 x 180 x 200 mm",
       powerRating: 1.5,
       voltage: "415V",
-      technicalSpecsJson: JSON.stringify({
-        "Power Rating": "1.5 kW (2.0 HP)",
-        "Operating Speed": "1440 RPM",
-        "Enclosure Rating": "IP55 Standard",
-        "Frame Size": "IEC 90S",
-        "Efficiency": "IE3 Premium 87.5%",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Power": "1.5 kW (2 HP)", "Speed": "1440 RPM", "Protection": "IP55", "Frame": "IEC 90S" }),
     },
     {
       partNumber: "MTR-005",
       sku: "SKU-MTR-5HP-02",
       name: "5HP Heavy-Duty Induction Motor",
       description: "Robust 3.7 kW high-starting-torque drive motor for medium to heavy freight conveying lines.",
-      categoryId: catMotors.id,
+      categoryId: catMap["motors"].id,
       manufacturer: "ABB Powertrain",
       price: 42000,
       currency: "INR",
@@ -341,20 +270,14 @@ async function main() {
       dimensions: "380 x 220 x 240 mm",
       powerRating: 3.7,
       voltage: "415V",
-      technicalSpecsJson: JSON.stringify({
-        "Power Rating": "3.7 kW (5.0 HP)",
-        "Operating Speed": "1460 RPM",
-        "Enclosure Rating": "IP55 / IP65 capable",
-        "Frame Size": "IEC 112M",
-        "Efficiency": "IE3 Premium 89.2%",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Power": "3.7 kW (5 HP)", "Speed": "1460 RPM", "Protection": "IP55", "Frame": "IEC 112M" }),
     },
     {
       partNumber: "MTR-010",
       sku: "SKU-MTR-10HP-03",
       name: "10HP Ultra-Torque Industrial Motor",
-      description: "Ultra heavy-duty 7.5 kW motor delivering maximum conveyor pull torque for heavy pallet and bulk payloads.",
-      categoryId: catMotors.id,
+      description: "Ultra heavy-duty 7.5 kW motor delivering maximum conveyor pull torque for heavy pallet payloads.",
+      categoryId: catMap["motors"].id,
       manufacturer: "Baldor-Reliance",
       price: 78000,
       currency: "INR",
@@ -362,307 +285,1314 @@ async function main() {
       dimensions: "460 x 280 x 300 mm",
       powerRating: 7.5,
       voltage: "415V",
-      technicalSpecsJson: JSON.stringify({
-        "Power Rating": "7.5 kW (10.0 HP)",
-        "Operating Speed": "1475 RPM",
-        "Enclosure Rating": "IP65 Heavy Duty",
-        "Frame Size": "IEC 132M",
-        "Efficiency": "IE4 Super Premium 92.1%",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Power": "7.5 kW (10 HP)", "Speed": "1475 RPM", "Protection": "IP65", "Frame": "IEC 132M" }),
     },
+
+    // CONVEYORS
     {
       partNumber: "CVY-002",
       sku: "SKU-CVY-2M-01",
       name: "2m Modular PVC Conveyor Track",
       description: "2-meter modular food-grade green PVC link belt with integrated crowned aluminum driving pulleys.",
-      categoryId: catConveyors.id,
+      categoryId: catMap["conveyors"].id,
       manufacturer: "Habasit Motion",
       price: 52000,
       currency: "INR",
       weight: 65,
       dimensions: "2000 x 600 x 120 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Track Length": "2000 mm",
-        "Usable Width": "550 mm",
-        "Belt Material": "Multi-ply Antistatic PVC",
-        "Max Payload": "150 kg",
-        "Max Velocity": "1.2 m/s",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Length": "2000 mm", "Width": "550 mm", "Max Payload": "150 kg" }),
     },
     {
       partNumber: "CVY-004",
       sku: "SKU-CVY-4M-02",
       name: "4m High-Tensile Modular Conveyor Track",
       description: "4-meter heavy-gauge industrial conveyor bed equipped with reinforced polyurethane belt and guide rails.",
-      categoryId: catConveyors.id,
+      categoryId: catMap["conveyors"].id,
       manufacturer: "Habasit Motion",
       price: 85000,
       currency: "INR",
       weight: 115,
       dimensions: "4000 x 600 x 120 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Track Length": "4000 mm",
-        "Usable Width": "550 mm",
-        "Belt Material": "Reinforced PU / High Grip",
-        "Max Payload": "400 kg",
-        "Max Velocity": "1.8 m/s",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Length": "4000 mm", "Width": "550 mm", "Max Payload": "400 kg" }),
     },
     {
       partNumber: "CVY-006",
       sku: "SKU-CVY-6M-03",
       name: "6m Heavy-Duty Steel Roller Conveyor",
       description: "6-meter extended pallet transport bed with hardened stainless steel motorized rollers for high-throughput lines.",
-      categoryId: catConveyors.id,
+      categoryId: catMap["conveyors"].id,
       manufacturer: "Interroll Heavy",
       price: 135000,
       currency: "INR",
       weight: 195,
       dimensions: "6000 x 800 x 150 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Track Length": "6000 mm",
-        "Usable Width": "750 mm",
-        "Belt Material": "Stainless Steel Rollers (50mm)",
-        "Max Payload": "950 kg",
-        "Max Velocity": "2.2 m/s",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Length": "6000 mm", "Width": "750 mm", "Max Payload": "950 kg" }),
     },
+
+    // SENSORS
     {
       partNumber: "SEN-001",
       sku: "SKU-SEN-STD-01",
       name: "Standard Optical Proximity Sensor",
-      description: "Diffuse-reflective infrared photoelectric sensor with adjustable 300mm detection range and NPN/PNP output.",
-      categoryId: catSensors.id,
+      description: "Diffuse-reflective infrared photoelectric sensor with adjustable 300mm detection range and PNP output.",
+      categoryId: catMap["sensors"].id,
       manufacturer: "Omron Industrial",
       price: 5000,
       currency: "INR",
       weight: 0.8,
       dimensions: "85 x 40 x 35 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Sensing Range": "10 - 300 mm",
-        "Output": "PNP Normally Open",
-        "Protection": "IP65",
-        "Response Time": "1.0 ms",
-        "Operating Temp": "-10°C to +55°C",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Range": "10-300 mm", "Output": "PNP NO", "Protection": "IP65" }),
     },
     {
       partNumber: "SEN-002",
       sku: "SKU-SEN-IND-02",
       name: "IP67 Heavy-Duty Industrial Telemetry Sensor",
       description: "Ruggedized stainless steel laser time-of-flight distance and part classification telemetry sensor.",
-      categoryId: catSensors.id,
+      categoryId: catMap["sensors"].id,
       manufacturer: "Sick Sensor Intelligence",
       price: 14500,
       currency: "INR",
       weight: 1.6,
       dimensions: "110 x 50 x 45 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Sensing Range": "50 - 2000 mm ToF",
-        "Output": "IO-Link + 4-20mA Analog",
-        "Protection": "IP67 / IP69K Washdown",
-        "Response Time": "0.25 ms High Speed",
-        "Operating Temp": "-25°C to +70°C",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Range": "50-2000 mm ToF", "Output": "IO-Link", "Protection": "IP67" }),
     },
+
+    // CONTROLS
     {
       partNumber: "CTL-001",
       sku: "SKU-CTL-STD-01",
       name: "Standard Control Panel with 7\" Touch HMI",
-      description: "Wall/post-mount NEMA 12 enclosure containing micro-PLC, Schneider contactors, 24V PSU, and 7-inch color touch screen.",
-      categoryId: catControls.id,
+      description: "NEMA 12 enclosure containing micro-PLC, Schneider contactors, 24V PSU, and 7-inch color touch screen.",
+      categoryId: catMap["controls"].id,
       manufacturer: "Rockwell / Allen-Bradley",
       price: 65000,
       currency: "INR",
       weight: 28,
       dimensions: "600 x 400 x 220 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Display": "7-inch TFT 800x480 Capacitive Touch",
-        "PLC Controller": "Micro850 EtherNet/IP",
-        "Max Connected Power": "5.5 kW",
-        "Enclosure Rating": "IP54 / NEMA 12",
-        "Communication": "Modbus TCP, Ethernet",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Display": "7-inch Touch", "PLC": "Micro850", "Power": "5.5 kW max" }),
     },
     {
       partNumber: "CTL-002",
       sku: "SKU-CTL-IND-02",
       name: "High-Capacity Power Controller with VFD (400V)",
-      description: "Full-scale double-door power cabinet integrating 11kW Variable Frequency Drive (VFD), harmonic filter, and 10\" HMI.",
-      categoryId: catControls.id,
+      description: "Full-scale double-door power cabinet integrating 11kW Variable Frequency Drive (VFD) and 10\" HMI.",
+      categoryId: catMap["controls"].id,
       manufacturer: "Rockwell / Allen-Bradley",
       price: 118000,
       currency: "INR",
       weight: 45,
       dimensions: "800 x 600 x 300 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Display": "10.1-inch Color Touch HMI",
-        "VFD Inverter": "11 kW Sensorless Vector Drive",
-        "Max Connected Power": "15 kW Continuous",
-        "Enclosure Rating": "IP65 Air-Conditioned",
-        "Communication": "ProfiNet, EtherNet/IP, OPC-UA",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Display": "10.1-inch HMI", "VFD": "11 kW Inverter", "Protection": "IP65" }),
     },
+
+    // SAFETY
     {
       partNumber: "SFT-001",
       sku: "SKU-SFT-GRD-01",
       name: "Reinforced Steel Mesh Safety Guard",
-      description: "Heavy yellow powder-coated 2mm steel wire mesh cage with tool-less safety latch for drive chain protection.",
-      categoryId: catSafety.id,
+      description: "Heavy yellow powder-coated steel wire mesh cage with safety interlock switch for mechanical hazard shielding.",
+      categoryId: catMap["safety"].id,
       manufacturer: "Troax Machine Guarding",
       price: 18500,
       currency: "INR",
       weight: 16,
       dimensions: "650 x 450 x 350 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Material": "Carbon Steel 25x25mm Wire Mesh",
-        "Finish": "Safety Yellow RAL 1018 Epoxy Powder",
-        "Safety Standard": "ISO 14120 / OSHA 1910",
-        "Interlock Switch": "Magnetic Safety Contact Included",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Material": "Carbon Steel Mesh", "Finish": "RAL 1018 Yellow", "Standard": "ISO 14120" }),
     },
     {
       partNumber: "SFT-002",
       sku: "SKU-SFT-ESTOP-02",
       name: "Emergency Stop Mushroom Console",
-      description: "Fail-safe twist-to-reset 40mm red mushroom head emergency button mounted in high-visibility yellow die-cast housing.",
-      categoryId: catSafety.id,
+      description: "Fail-safe twist-to-reset 40mm red mushroom head emergency button mounted in high-visibility die-cast housing.",
+      categoryId: catMap["safety"].id,
       manufacturer: "Eaton Automation",
       price: 9500,
       currency: "INR",
       weight: 2.2,
       dimensions: "160 x 120 x 140 mm",
-      technicalSpecsJson: JSON.stringify({
-        "Button Diameter": "40 mm Mushroom Head",
-        "Action Type": "Push-to-lock, Twist-to-release",
-        "Contact Blocks": "2x NC Positive Break (ISO 13850)",
-        "IP Rating": "IP66 Oil-Tight / Water-Tight",
-        "Safety Category": "SIL 3 / Ple Cat 4 Compliant",
-      }),
+      technicalSpecsJson: JSON.stringify({ "Button": "40 mm Mushroom", "Contacts": "2x NC Positive Break", "Rating": "SIL 3 / Ple" }),
+    },
+
+    // TOOLING (SPINDLES & GRIPPERS)
+    {
+      partNumber: "SPN-024",
+      sku: "SKU-SPN-24K-01",
+      name: "24,000 RPM HSK-A63 Direct-Drive Electro-Spindle",
+      description: "15 kW liquid-cooled synchronous high-speed machining spindle with ceramic hybrid bearings and pneumatic tool unclamp cylinder.",
+      categoryId: catMap["tooling"].id,
+      manufacturer: "Fischer Spindle AG",
+      price: 195000,
+      currency: "INR",
+      weight: 38,
+      dimensions: "240 x 240 x 580 mm",
+      powerRating: 15.0,
+      voltage: "400V",
+      technicalSpecsJson: JSON.stringify({ "Max Speed": "24,000 RPM", "Torque": "38 Nm", "Taper": "HSK-A63", "Cooling": "Closed Glycol" }),
+    },
+    {
+      partNumber: "SPN-040",
+      sku: "SKU-SPN-40K-02",
+      name: "40,000 RPM Ultra-Precision High-Torque Spindle",
+      description: "22 kW high-frequency micro-milling spindle designed for mirror-surface mold finishing and graphite electrode machining.",
+      categoryId: catMap["tooling"].id,
+      manufacturer: "Step-Tec Precision",
+      price: 285000,
+      currency: "INR",
+      weight: 46,
+      dimensions: "260 x 260 x 640 mm",
+      powerRating: 22.0,
+      voltage: "400V",
+      technicalSpecsJson: JSON.stringify({ "Max Speed": "40,000 RPM", "Torque": "24 Nm", "Taper": "HSK-E40", "Runout": "< 1.0 micron" }),
+    },
+    {
+      partNumber: "ATC-024",
+      sku: "SKU-ATC-24T-01",
+      name: "24-Pocket High-Speed Tool Carousel Magazine",
+      description: "Geneva-motion servo tool magazine with twin-arm rapid tool changer arm, achieving 1.5-second chip-to-chip changeover.",
+      categoryId: catMap["tooling"].id,
+      manufacturer: "Gifu Machinery",
+      price: 125000,
+      currency: "INR",
+      weight: 85,
+      dimensions: "750 x 750 x 480 mm",
+      technicalSpecsJson: JSON.stringify({ "Capacity": "24 Tools", "Tool Shank": "HSK-A63 / BT40", "Max Tool Mass": "8 kg per pocket" }),
+    },
+    {
+      partNumber: "GRP-2FG",
+      sku: "SKU-GRP-2F-01",
+      name: "Precision Pneumatic 2-Finger Parallel Gripper",
+      description: "High-rigidity T-slot jaw guided parallel gripper with magnetic position sensors and 450N clamping force.",
+      categoryId: catMap["tooling"].id,
+      manufacturer: "Schunk Automation",
+      price: 38000,
+      currency: "INR",
+      weight: 3.5,
+      dimensions: "180 x 110 x 95 mm",
+      technicalSpecsJson: JSON.stringify({ "Stroke": "25 mm per finger", "Grip Force": "450 N", "Repeatability": "±0.01 mm" }),
+    },
+    {
+      partNumber: "GRP-VAC",
+      sku: "SKU-GRP-VAC-02",
+      name: "Multi-Bellows High-Flow Vacuum Suction Gripper",
+      description: "Integrated multi-stage Venturi vacuum ejector gripper with 6 high-temperature silicone bellows cups and digital vacuum switch.",
+      categoryId: catMap["tooling"].id,
+      manufacturer: "Piab Vacuum",
+      price: 45000,
+      currency: "INR",
+      weight: 4.8,
+      dimensions: "320 x 240 x 140 mm",
+      technicalSpecsJson: JSON.stringify({ "Suction Cups": "6x 60mm Nitrile Bellows", "Flow Rate": "140 Nl/min", "Vacuum Level": "-85 kPa" }),
+    },
+
+    // ROBOTICS (ARMS & DELTAS)
+    {
+      partNumber: "ROB-6AX",
+      sku: "SKU-ROB-6AX-01",
+      name: "6-Axis Articulated High-Payload Industrial Robot Arm",
+      description: "20kg payload articulated 6-axis robotic arm with 1,850mm reach, absolute hollow-shaft optical encoders, and integrated air/IO harness.",
+      categoryId: catMap["robotics"].id,
+      manufacturer: "KUKA Robotics / FANUC",
+      price: 480000,
+      currency: "INR",
+      weight: 165,
+      dimensions: "550 x 550 x 1650 mm",
+      powerRating: 3.5,
+      voltage: "400V",
+      technicalSpecsJson: JSON.stringify({ "Payload": "20 kg", "Reach": "1850 mm", "Repeatability": "±0.03 mm", "Axes": "6-Axis Articulated" }),
+    },
+    {
+      partNumber: "ROB-DEL",
+      sku: "SKU-ROB-DEL-02",
+      name: "High-Speed Carbon Fiber 3-Axis Delta Spider Arm",
+      description: "Ultra-low inertia carbon-fiber kinematic parallel robot capable of 180 picks/min and 15G peak acceleration.",
+      categoryId: catMap["robotics"].id,
+      manufacturer: "Codian Robotics",
+      price: 340000,
+      currency: "INR",
+      weight: 58,
+      dimensions: "1100 x 1100 x 950 mm",
+      powerRating: 2.2,
+      voltage: "400V",
+      technicalSpecsJson: JSON.stringify({ "Payload": "3.0 kg", "Working Diameter": "1200 mm", "Max Speed": "10 m/s", "Acceleration": "15G" }),
+    },
+
+    // OPTICS & LASER
+    {
+      partNumber: "WLD-HED",
+      sku: "SKU-OPT-WLD-01",
+      name: "Coaxial Wire-Feed Fiber Laser Welding Head",
+      description: "High-power fiber laser welding optic with integrated galvanometer seam wobble, coaxial camera view, and motor wire feeding nozzle.",
+      categoryId: catMap["optics-laser"].id,
+      manufacturer: "Precitec Optronics",
+      price: 220000,
+      currency: "INR",
+      weight: 12,
+      dimensions: "180 x 160 x 420 mm",
+      technicalSpecsJson: JSON.stringify({ "Max Laser Power": "6 kW", "Wobble Freq": "800 Hz", "Collimation": "100 mm", "Focal Length": "200 mm" }),
+    },
+    {
+      partNumber: "LSR-004",
+      sku: "SKU-OPT-LSR-02",
+      name: "4kW Continuous Fiber Laser Resonator Module",
+      description: "Industrial continuous wave (CW) 1070nm fiber laser source with electro-optical modulation and QBH output connector.",
+      categoryId: catMap["optics-laser"].id,
+      manufacturer: "IPG Photonics",
+      price: 450000,
+      currency: "INR",
+      weight: 140,
+      dimensions: "850 x 600 x 450 mm",
+      powerRating: 12.0,
+      voltage: "400V",
+      technicalSpecsJson: JSON.stringify({ "Output Power": "4,000 W CW", "Wavelength": "1070 ±10 nm", "Beam Quality": "BPP < 2.5 mm*mrad" }),
+    },
+    {
+      partNumber: "PRB-5AX",
+      sku: "SKU-OPT-PRB-03",
+      name: "Renishaw 5-Axis Optical Scanning Touch Probe",
+      description: "High-accuracy kinematic touch trigger and continuous scanning probe with carbon-fiber stylus and optical infrared transmission.",
+      categoryId: catMap["optics-laser"].id,
+      manufacturer: "Renishaw Metrology",
+      price: 165000,
+      currency: "INR",
+      weight: 1.8,
+      dimensions: "65 x 65 x 220 mm",
+      technicalSpecsJson: JSON.stringify({ "Unidirectional Repeatability": "0.35 micron", "Stylus Force": "0.08 N", "Interface": "Modulated Optical" }),
+    },
+    {
+      partNumber: "VIS-4KT",
+      sku: "SKU-OPT-VIS-04",
+      name: "4K High-Speed Telecentric Machine Vision Camera",
+      description: "Ultra-low distortion bilateral telecentric lens with 4K CMOS global shutter sensor and multi-angle white LED ring strobe.",
+      categoryId: catMap["optics-laser"].id,
+      manufacturer: "Cognex / Keyence",
+      price: 88000,
+      currency: "INR",
+      weight: 2.6,
+      dimensions: "120 x 120 x 280 mm",
+      technicalSpecsJson: JSON.stringify({ "Resolution": "4096 x 3000 (12MP)", "Frame Rate": "90 FPS", "Distortion": "< 0.05%", "Interface": "GigE 10G" }),
+    },
+    {
+      partNumber: "LDR-001",
+      sku: "SKU-OPT-LDR-05",
+      name: "360° Industrial Safety LiDAR Navigation Scanner",
+      description: "Type 3 safety laser scanner with 30m detection range, 275-degree field-of-view, and configurable multi-zone safety warning fields.",
+      categoryId: catMap["optics-laser"].id,
+      manufacturer: "SICK Sensor Intelligence",
+      price: 72000,
+      currency: "INR",
+      weight: 3.2,
+      dimensions: "155 x 155 x 185 mm",
+      technicalSpecsJson: JSON.stringify({ "Safety Field": "5.5 m", "Warning Field": "40 m", "Scan Angle": "275°", "Safety Level": "SIL 2 / PL d" }),
+    },
+
+    // ACTUATORS & POWER
+    {
+      partNumber: "HYD-CYL",
+      sku: "SKU-ACT-HYD-01",
+      name: "250-Ton Precision Hydraulic Clamp Ram & Manifold",
+      description: "Heavy-duty 315-bar hydraulic clamping cylinder with hard-chrome piston rod, proportional servo valve, and pressure transducer.",
+      categoryId: catMap["actuators"].id,
+      manufacturer: "Bosch Rexroth",
+      price: 175000,
+      currency: "INR",
+      weight: 280,
+      dimensions: "450 x 450 x 850 mm",
+      technicalSpecsJson: JSON.stringify({ "Clamp Force": "2500 kN", "Bore Diameter": "280 mm", "Stroke": "450 mm", "Working Pressure": "250 bar" }),
+    },
+    {
+      partNumber: "SCR-450",
+      sku: "SKU-ACT-SCR-02",
+      name: "High-Torque Bimetallic Extruder Injection Screw",
+      description: "Carbide bimetallic hardened plasticizing screw barrel assembly with 5-zone ceramic heater bands and melt temperature thermocouples.",
+      categoryId: catMap["actuators"].id,
+      manufacturer: "KraussMaffei Extrusion",
+      price: 130000,
+      currency: "INR",
+      weight: 180,
+      dimensions: "320 x 320 x 1650 mm",
+      powerRating: 18.0,
+      voltage: "400V",
+      technicalSpecsJson: JSON.stringify({ "Screw Diameter": "55 mm", "L/D Ratio": "22:1", "Shot Volume": "480 cm3", "Max Pressure": "2100 bar" }),
+    },
+    {
+      partNumber: "BAT-048",
+      sku: "SKU-ACT-BAT-03",
+      name: "48V 100Ah LiFePO4 Smart Traction Battery Pack",
+      description: "Automotive-grade prismatic lithium iron phosphate battery module with integrated BMS, CANbus telemetry, and quick-dock terminal.",
+      categoryId: catMap["actuators"].id,
+      manufacturer: "CATL Industrial",
+      price: 115000,
+      currency: "INR",
+      weight: 52,
+      dimensions: "520 x 380 x 240 mm",
+      technicalSpecsJson: JSON.stringify({ "Nominal Voltage": "51.2 V", "Capacity": "100 Ah (5.12 kWh)", "Cycle Life": "> 4,000 cycles", "BMS": "CAN / Modbus" }),
+    },
+    {
+      partNumber: "FLT-MIST",
+      sku: "SKU-ACT-FLT-04",
+      name: "Centrifugal High-Efficiency Coolant Mist Filter & HEPA",
+      description: "Centrifugal oil and water-soluble coolant mist collector with final H13 HEPA stage, capturing 99.97% of sub-micron aerosols.",
+      categoryId: catMap["actuators"].id,
+      manufacturer: "Filtermist International",
+      price: 58000,
+      currency: "INR",
+      weight: 24,
+      dimensions: "380 x 380 x 620 mm",
+      powerRating: 0.75,
+      voltage: "415V",
+      technicalSpecsJson: JSON.stringify({ "Airflow": "1200 m3/h", "Filtration Efficiency": "99.97% @ 0.3 micron", "Motor": "0.75 kW IP55" }),
+    },
+
+    // MATERIAL FEED
+    {
+      partNumber: "PLT-DIS",
+      sku: "SKU-FED-PLT-01",
+      name: "Automatic Pneumatic Empty Pallet Dispenser Magazine",
+      description: "Vertical stacking magazine storing up to 15 standard wooden/plastic pallets, automatically dispensing single bottom pallets onto roller line.",
+      categoryId: catMap["material-feed"].id,
+      manufacturer: "Premier Pallet Systems",
+      price: 140000,
+      currency: "INR",
+      weight: 310,
+      dimensions: "1400 x 1400 x 2400 mm",
+      technicalSpecsJson: JSON.stringify({ "Magazine Capacity": "15 Pallets", "Pallet Size": "1200 x 1000 mm", "Cycle Time": "12 seconds" }),
     },
   ];
 
-  for (const c of componentsData) {
-    await prisma.component.create({
-      data: c,
-    });
+  const compMap: Record<string, any> = {};
+  for (const c of componentsList) {
+    compMap[c.partNumber] = await prisma.component.create({ data: c });
   }
 
-  console.log("✓ Created 12 Production-Ready Components");
+  console.log("✓ Created 29 Production Components");
+
+  // 6. Realistic Mounting Points for All 10 Machines
+  // MX-500: Modular Conveyor (7 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "MOTOR_MOUNT_01",
+        machineId: machineMap["mx-500"].id,
+        name: "Primary Drive Axle Mount",
+        description: "Direct-drive coupling mount for primary induction or servo motors.",
+        posX: -1.45, posY: 0.55, posZ: 0.65, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.8, explodedY: 0.3, explodedZ: 0.8,
+        allowedCategorySlugsJson: JSON.stringify(["motors"]),
+        allowedPartNumbersJson: JSON.stringify(["MTR-002", "MTR-005", "MTR-010"]),
+        defaultPartNumber: "MTR-005",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CONVEYOR_BED_01",
+        machineId: machineMap["mx-500"].id,
+        name: "Main Conveyor Bed Deck",
+        description: "Central frame chassis mount for roller deck and belt track.",
+        posX: 0, posY: 0.78, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.8, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["conveyors"]),
+        allowedPartNumbersJson: JSON.stringify(["CVY-002", "CVY-004", "CVY-006"]),
+        defaultPartNumber: "CVY-004",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "SENSOR_01",
+        machineId: machineMap["mx-500"].id,
+        name: "Infeed Proximity Sensor Mount",
+        description: "Front-end optical bracket for pallet infeed detection.",
+        posX: -1.15, posY: 0.95, posZ: 0.42, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.3, explodedY: 0.5, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["sensors"]),
+        allowedPartNumbersJson: JSON.stringify(["SEN-001", "SEN-002"]),
+        defaultPartNumber: "SEN-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "SENSOR_02",
+        machineId: machineMap["mx-500"].id,
+        name: "Outfeed Optical Telemetry Mount",
+        description: "Rear-end optical bracket for part exit counting and quality strobe.",
+        posX: 1.15, posY: 0.95, posZ: 0.42, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.5, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["sensors"]),
+        allowedPartNumbersJson: JSON.stringify(["SEN-001", "SEN-002"]),
+        defaultPartNumber: "SEN-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CONTROL_PANEL",
+        machineId: machineMap["mx-500"].id,
+        name: "Central HMI / PLC Control Enclosure",
+        description: "Ergonomic side frame mounting post for industrial touch HMI and PLC.",
+        posX: 0.65, posY: 1.15, posZ: -0.65, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.4, explodedY: 0.2, explodedZ: -0.7,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-001", "CTL-002"]),
+        defaultPartNumber: "CTL-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "SAFETY_GUARD_01",
+        machineId: machineMap["mx-500"].id,
+        name: "Drive Chain Shield Enclosure",
+        description: "Protective yellow steel mesh cowl shielding the motor drive sprocket.",
+        posX: -1.45, posY: 0.6, posZ: 0.8, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.5, explodedY: 0.2, explodedZ: 0.6,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
+        defaultPartNumber: "SFT-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "ESTOP_MOUNT_01",
+        machineId: machineMap["mx-500"].id,
+        name: "Emergency Stop Push Button Console",
+        description: "Quick-access prominent red mushroom e-stop post.",
+        posX: 1.35, posY: 1.05, posZ: -0.45, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.3, explodedZ: -0.3,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // RX-900: Robotic Workcell (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "ROBOT_ARM_BASE",
+        machineId: machineMap["rx-900"].id,
+        name: "Center Robot Pedestal Flange",
+        description: "Heavy circular mounting plinth for 6-axis articulated robotic arm.",
+        posX: 0, posY: 0.72, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.6, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["robotics"]),
+        allowedPartNumbersJson: JSON.stringify(["ROB-6AX"]),
+        defaultPartNumber: "ROB-6AX",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "END_EFFECTOR_TOOL",
+        machineId: machineMap["rx-900"].id,
+        name: "Tool Flange End-Effector",
+        description: "ISO 9409-1 mechanical tool mounting flange for parallel or vacuum grippers.",
+        posX: 0.7, posY: 1.25, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.5, explodedY: 0.3, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["tooling"]),
+        allowedPartNumbersJson: JSON.stringify(["GRP-2FG", "GRP-VAC"]),
+        defaultPartNumber: "GRP-2FG",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "ROBOT_PLC_CABINET",
+        machineId: machineMap["rx-900"].id,
+        name: "Robotic Automation PLC Cabinet",
+        description: "Corner floor cabinet housing robot controller and power distribution.",
+        posX: -0.95, posY: 0.95, posZ: 0.95, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.6, explodedY: 0.2, explodedZ: 0.6,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-001", "CTL-002"]),
+        defaultPartNumber: "CTL-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "INSPECTION_CAMERA",
+        machineId: machineMap["rx-900"].id,
+        name: "High-Speed Overhead Inspection Camera",
+        description: "Gantry-mounted 4K telecentric vision camera for part location and QA.",
+        posX: 0.35, posY: 1.8, posZ: 0.55, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.4, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["VIS-4KT"]),
+        defaultPartNumber: "VIS-4KT",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CELL_SAFETY_CURTAIN",
+        machineId: machineMap["rx-900"].id,
+        name: "Perimeter Interlocked Enclosure Guard",
+        description: "Protective mesh barricade and optical safety curtain system.",
+        posX: 0, posY: 1.1, posZ: 1.05, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.2, explodedZ: 0.7,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
+        defaultPartNumber: "SFT-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "OPERATOR_ESTOP",
+        machineId: machineMap["rx-900"].id,
+        name: "Workcell Emergency Stop Station",
+        description: "Front operator perimeter push-to-lock emergency stop station.",
+        posX: 1.05, posY: 0.9, posZ: 1.05, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.4, explodedY: 0.2, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // CNC-3000: 5-Axis Milling Center (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "CNC_SPINDLE_CARTRIDGE",
+        machineId: machineMap["cnc-3000"].id,
+        name: "Milling Spindle Cartridge",
+        description: "Vertical Z-ram precision spindle cartridge pocket.",
+        posX: 0, posY: 1.65, posZ: 0.5, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.7, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["tooling"]),
+        allowedPartNumbersJson: JSON.stringify(["SPN-024", "SPN-040"]),
+        defaultPartNumber: "SPN-024",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CNC_TOOL_CHANGER",
+        machineId: machineMap["cnc-3000"].id,
+        name: "Automatic Tool Carousel Magazine",
+        description: "Side gantry tool magazine mounting bracket.",
+        posX: -0.9, posY: 1.7, posZ: 0.3, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.7, explodedY: 0.3, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["tooling"]),
+        allowedPartNumbersJson: JSON.stringify(["ATC-024"]),
+        defaultPartNumber: "ATC-024",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CNC_TOUCH_PROBE",
+        machineId: machineMap["cnc-3000"].id,
+        name: "5-Axis Renishaw Inspection Probe",
+        description: "Automated workpiece datum and in-process scanning probe.",
+        posX: 0.35, posY: 1.05, posZ: 0.2, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.3, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["PRB-5AX"]),
+        defaultPartNumber: "PRB-5AX",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CNC_MIST_FILTER",
+        machineId: machineMap["cnc-3000"].id,
+        name: "Coolant Mist Extraction Filter",
+        description: "Centrifugal coolant aerosol extraction system mounted atop roof gantry.",
+        posX: 0.85, posY: 2.3, posZ: -0.6, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.5, explodedY: 0.6, explodedZ: -0.4,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["FLT-MIST"]),
+        defaultPartNumber: "FLT-MIST",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CNC_CONTROL_CABINET",
+        machineId: machineMap["cnc-3000"].id,
+        name: "CNC Automation & Multi-Axis Power Cabinet",
+        description: "Siemens/Fanuc high-current drive amplifier and CNC control console.",
+        posX: 1.25, posY: 1.1, posZ: 0.7, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.7, explodedY: 0.2, explodedZ: 0.5,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-002"]),
+        defaultPartNumber: "CTL-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "CNC_SAFETY_ESTOP",
+        machineId: machineMap["cnc-3000"].id,
+        name: "Operator Door Safety E-Stop",
+        description: "Quick-disconnect mushroom emergency stop at machine doorway.",
+        posX: 1.1, posY: 0.9, posZ: 1.05, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.4, explodedY: 0.2, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // PK-1200: High-Speed Delta Pick & Place Robot (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "DELTA_SPIDER_ARM",
+        machineId: machineMap["pk-1200"].id,
+        name: "Kinematic Delta Spider Arm Base",
+        description: "Overhead ceiling truss apex ring mount for 3-axis kinematic delta arms.",
+        posX: 0, posY: 2.05, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.6, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["robotics"]),
+        allowedPartNumbersJson: JSON.stringify(["ROB-DEL"]),
+        defaultPartNumber: "ROB-DEL",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "DELTA_VAC_GRIPPER",
+        machineId: machineMap["pk-1200"].id,
+        name: "High-Flow Vacuum Suction Head",
+        description: "Lower kinematic tool plate for high-speed Venturi suction cups.",
+        posX: 0, posY: 0.95, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: -0.4, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["tooling"]),
+        allowedPartNumbersJson: JSON.stringify(["GRP-VAC", "GRP-2FG"]),
+        defaultPartNumber: "GRP-VAC",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "DELTA_VISION_CAM",
+        machineId: machineMap["pk-1200"].id,
+        name: "Conveyor Line Tracking 4K Vision Camera",
+        description: "High-frequency strobe machine vision camera for real-time part orientation detection.",
+        posX: 0, posY: 1.85, posZ: 0.45, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.4, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["VIS-4KT"]),
+        defaultPartNumber: "VIS-4KT",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "DELTA_TRACK_CONVEYOR",
+        machineId: machineMap["pk-1200"].id,
+        name: "Under-Gantry Product Tracking Conveyor",
+        description: "Fast-feed sanitary link conveyor passing beneath the delta workspace.",
+        posX: 0, posY: 0.55, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: -0.3, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["conveyors"]),
+        allowedPartNumbersJson: JSON.stringify(["CVY-002", "CVY-004"]),
+        defaultPartNumber: "CVY-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "DELTA_CONTROLLER",
+        machineId: machineMap["pk-1200"].id,
+        name: "Delta Kinematic Motion Controller",
+        description: "High-speed Beckhoff/Rockwell kinematic trajectory control cabinet.",
+        posX: 0.85, posY: 1.15, posZ: -0.75, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.6, explodedY: 0.2, explodedZ: -0.5,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-001", "CTL-002"]),
+        defaultPartNumber: "CTL-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "DELTA_SAFETY_ESTOP",
+        machineId: machineMap["pk-1200"].id,
+        name: "Gantry Emergency Stop Push Button",
+        description: "Tripod leg mounted emergency stop console.",
+        posX: -0.85, posY: 0.9, posZ: 0.75, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.4, explodedY: 0.2, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // AGV-500: Autonomous Mobile Tugger (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "AGV_FRONT_LIDAR",
+        machineId: machineMap["agv-500"].id,
+        name: "Front Safety LiDAR Navigation Scanner",
+        description: "Front chassis bumper pocket for 360-degree SLAM navigation LiDAR.",
+        posX: 0.76, posY: 0.28, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.5, explodedY: 0.2, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["LDR-001"]),
+        defaultPartNumber: "LDR-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "AGV_BATTERY_BAY",
+        machineId: machineMap["agv-500"].id,
+        name: "Center Traction Battery Compartment",
+        description: "Quick-swap 48V LiFePO4 battery pack docking bay.",
+        posX: -0.1, posY: 0.38, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.6, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["BAT-048"]),
+        defaultPartNumber: "BAT-048",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "AGV_DRIVE_MOTOR",
+        machineId: machineMap["agv-500"].id,
+        name: "Dual Direct-Drive Traction Servo Motor",
+        description: "High-torque brushless DC planetary wheel drive system.",
+        posX: 0.05, posY: 0.25, posZ: 0.42, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.2, explodedZ: 0.6,
+        allowedCategorySlugsJson: JSON.stringify(["motors"]),
+        allowedPartNumbersJson: JSON.stringify(["MTR-002"]),
+        defaultPartNumber: "MTR-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "AGV_FLEET_CONTROLLER",
+        machineId: machineMap["agv-500"].id,
+        name: "Fleet Navigation Industrial PC Panel",
+        description: "Embedded Linux IPC, 5G Wi-Fi gateway, and status display.",
+        posX: -0.5, posY: 0.42, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.4, explodedY: 0.3, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-001"]),
+        defaultPartNumber: "CTL-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "AGV_REAR_OBSTACLE_SENSOR",
+        machineId: machineMap["agv-500"].id,
+        name: "Rear Reversing Telemetry Sensor",
+        description: "Rear bumper time-of-flight obstacle distance detection.",
+        posX: -0.76, posY: 0.28, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.4, explodedY: 0.2, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["sensors"]),
+        allowedPartNumbersJson: JSON.stringify(["SEN-002", "SEN-001"]),
+        defaultPartNumber: "SEN-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "AGV_TOP_ESTOP",
+        machineId: machineMap["agv-500"].id,
+        name: "Top-Cover Emergency Stop Button",
+        description: "Prominent top deck red emergency stop mushroom console.",
+        posX: 0.35, posY: 0.52, posZ: 0.25, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.2, explodedY: 0.3, explodedZ: 0.2,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // INJ-450: Injection Molding Machine (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "INJ_CLAMP_CYLINDER",
+        machineId: machineMap["inj-450"].id,
+        name: "250-Ton Hydraulic Clamping Cylinder",
+        description: "High-pressure toggle actuation hydraulic cylinder and valve manifold.",
+        posX: -1.9, posY: 1.15, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.8, explodedY: 0.4, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["HYD-CYL"]),
+        defaultPartNumber: "HYD-CYL",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "INJ_SCREW_BARREL",
+        machineId: machineMap["inj-450"].id,
+        name: "Bimetallic Extruder Injection Screw",
+        description: "Heated plasticizing screw barrel with ceramic band heaters.",
+        posX: 0.85, posY: 1.25, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.6, explodedY: 0.4, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["SCR-450"]),
+        defaultPartNumber: "SCR-450",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "INJ_PUMP_MOTOR",
+        machineId: machineMap["inj-450"].id,
+        name: "Hydraulic Servo Pump Drive Motor",
+        description: "High-torque 10HP inverter-driven hydraulic power pack motor.",
+        posX: 0.7, posY: 0.55, posZ: -0.55, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.4, explodedY: 0.2, explodedZ: -0.6,
+        allowedCategorySlugsJson: JSON.stringify(["motors"]),
+        allowedPartNumbersJson: JSON.stringify(["MTR-010", "MTR-005"]),
+        defaultPartNumber: "MTR-010",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "INJ_PARTS_TAKEOUT_GRIPPER",
+        machineId: machineMap["inj-450"].id,
+        name: "Molded Part Vacuum Takeout Gripper",
+        description: "Vacuum end-of-arm tool for extracting finished parts from mold core.",
+        posX: -0.7, posY: 1.55, posZ: 0.4, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.3, explodedY: 0.5, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["tooling"]),
+        allowedPartNumbersJson: JSON.stringify(["GRP-VAC", "GRP-2FG"]),
+        defaultPartNumber: "GRP-VAC",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "INJ_CENTRAL_CONTROLLER",
+        machineId: machineMap["inj-450"].id,
+        name: "Press Automation & Multi-Zone VFD Panel",
+        description: "Main electrical cabinet managing temperature loops and hydraulic servo valves.",
+        posX: 0.1, posY: 1.25, posZ: 0.75, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.2, explodedZ: 0.6,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-002"]),
+        defaultPartNumber: "CTL-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "INJ_MOLD_SAFETY_GUARD",
+        machineId: machineMap["inj-450"].id,
+        name: "Interlocked Mold Safety Enclosure Gate",
+        description: "Sliding front safety guard preventing clamp closure while operator is in mold zone.",
+        posX: -1.15, posY: 1.45, posZ: 0.6, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.4, explodedY: 0.3, explodedZ: 0.5,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
+        defaultPartNumber: "SFT-001",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // WLD-600: Laser Welding Cell (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "WLD_ROBOT_ARM",
+        machineId: machineMap["wld-600"].id,
+        name: "6-Axis Welding Articulated Arm",
+        description: "Rear plinth mounted 6-axis robot manipulating fiber welding head.",
+        posX: 0, posY: 0.75, posZ: -0.5, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.5, explodedZ: -0.4,
+        allowedCategorySlugsJson: JSON.stringify(["robotics"]),
+        allowedPartNumbersJson: JSON.stringify(["ROB-6AX"]),
+        defaultPartNumber: "ROB-6AX",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "WLD_LASER_HEAD",
+        machineId: machineMap["wld-600"].id,
+        name: "Fiber Laser Wobble Welding Head",
+        description: "End-effector coaxial wire-feed fiber laser processing optic.",
+        posX: 0.35, posY: 1.25, posZ: -0.25, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.3, explodedZ: 0.2,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["WLD-HED"]),
+        defaultPartNumber: "WLD-HED",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "WLD_RESONATOR_SOURCE",
+        machineId: machineMap["wld-600"].id,
+        name: "4kW Continuous Fiber Laser Resonator",
+        description: "Cabinet-mounted high-power fiber laser generator module.",
+        posX: 1.25, posY: 0.85, posZ: -0.85, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.6, explodedY: 0.2, explodedZ: -0.4,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["LSR-004"]),
+        defaultPartNumber: "LSR-004",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "WLD_MIST_FILTER",
+        machineId: machineMap["wld-600"].id,
+        name: "High-Efficiency Laser Fume Extraction Filter",
+        description: "Roof-mounted particulate and toxic metal aerosol collector.",
+        posX: -1.15, posY: 1.85, posZ: -0.75, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.5, explodedY: 0.5, explodedZ: -0.3,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["FLT-MIST"]),
+        defaultPartNumber: "FLT-MIST",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "WLD_CONTROL_PANEL",
+        machineId: machineMap["wld-600"].id,
+        name: "Laser Cell Automation HMI Cabinet",
+        description: "Master cell PLC coordinating robot paths, laser power ramp, and gas flow.",
+        posX: -1.2, posY: 1.1, posZ: 0.75, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.6, explodedY: 0.2, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-002", "CTL-001"]),
+        defaultPartNumber: "CTL-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "WLD_SAFETY_ESTOP",
+        machineId: machineMap["wld-600"].id,
+        name: "Laser Interlock E-Stop Console",
+        description: "Immediate laser beam shutter trip and high-voltage disconnect button.",
+        posX: 1.1, posY: 0.95, posZ: 1.05, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.4, explodedY: 0.2, explodedZ: 0.4,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "WLD_SAFETY_ENCLOSURE",
+        machineId: machineMap["wld-600"].id,
+        name: "Laser Safety Enclosure Curtain",
+        description: "Class-1 laser protective interlocked optical shielding curtain.",
+        posX: 0, posY: 1.25, posZ: 1.05, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.2, explodedZ: 0.6,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
+        defaultPartNumber: null,
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // PLZ-800: End-of-Line Palletizer (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "PLZ_ROBOT_ARM",
+        machineId: machineMap["plz-800"].id,
+        name: "High-Payload Palletizing Articulated Arm",
+        description: "Central reinforced pedestal mounting for articulated palletizing robot.",
+        posX: 0, posY: 0.8, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.6, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["robotics"]),
+        allowedPartNumbersJson: JSON.stringify(["ROB-6AX"]),
+        defaultPartNumber: "ROB-6AX",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PLZ_LAYER_GRIPPER",
+        machineId: machineMap["plz-800"].id,
+        name: "Vacuum Layer Box Gripper",
+        description: "Multi-valve vacuum suction gripper for lifting carton patterns and slip-sheets.",
+        posX: 0.85, posY: 1.35, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.5, explodedY: 0.3, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["tooling"]),
+        allowedPartNumbersJson: JSON.stringify(["GRP-VAC"]),
+        defaultPartNumber: "GRP-VAC",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PLZ_PALLET_DISPENSER",
+        machineId: machineMap["plz-800"].id,
+        name: "Automatic Empty Pallet Dispenser Magazine",
+        description: "Pneumatic 15-pallet stacking magazine feeding fresh pallets onto staging station.",
+        posX: -1.35, posY: 1.05, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.7, explodedY: 0.3, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["material-feed"]),
+        allowedPartNumbersJson: JSON.stringify(["PLT-DIS"]),
+        defaultPartNumber: "PLT-DIS",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PLZ_INFEED_CONVEYOR",
+        machineId: machineMap["plz-800"].id,
+        name: "Heavy-Duty Infeed Roller Conveyor",
+        description: "Steel roller conveyor feeding packed cases into robot pickup orientation.",
+        posX: 1.25, posY: 0.65, posZ: 0.85, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.6, explodedY: -0.2, explodedZ: 0.5,
+        allowedCategorySlugsJson: JSON.stringify(["conveyors"]),
+        allowedPartNumbersJson: JSON.stringify(["CVY-004", "CVY-006"]),
+        defaultPartNumber: "CVY-004",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PLZ_AUTOMATION_PANEL",
+        machineId: machineMap["plz-800"].id,
+        name: "Palletizer Line Automation Cabinet",
+        description: "NEMA 12 floor cabinet coordinating line conveyors, layer patterns, and safety logic.",
+        posX: 1.35, posY: 1.15, posZ: -1.15, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.7, explodedY: 0.2, explodedZ: -0.5,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-002"]),
+        defaultPartNumber: "CTL-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PLZ_SAFETY_BARRIER",
+        machineId: machineMap["plz-800"].id,
+        name: "Perimeter High-Security Mesh Fence",
+        description: "Full-height steel mesh enclosure guarding the robot swing perimeter.",
+        posX: 0, posY: 1.1, posZ: 1.35, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.2, explodedZ: 0.7,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
+        defaultPartNumber: "SFT-001",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // PRS-250: Precision Stamping Press (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "PRS_DRIVE_MOTOR",
+        machineId: machineMap["prs-250"].id,
+        name: "Crown Direct-Drive Servo Motor",
+        description: "Heavy direct-drive high-torque servo motor driving the press eccentric gear train.",
+        posX: 0, posY: 2.85, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.7, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["motors"]),
+        allowedPartNumbersJson: JSON.stringify(["MTR-010"]),
+        defaultPartNumber: "MTR-010",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PRS_DIE_CUSHION",
+        machineId: machineMap["prs-250"].id,
+        name: "Bed Die Cushion Hydraulic Ram",
+        description: "Pneumatic/hydraulic blankholder cushion inside lower press bolster.",
+        posX: 0, posY: 0.45, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: -0.4, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["HYD-CYL"]),
+        defaultPartNumber: "HYD-CYL",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PRS_STRIP_FEEDER",
+        machineId: machineMap["prs-250"].id,
+        name: "Automatic Coil Strip Feeder",
+        description: "Left-side servo roll feeder delivering precision sheet metal increment.",
+        posX: -1.25, posY: 0.9, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: -0.6, explodedY: 0.2, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["conveyors"]),
+        allowedPartNumbersJson: JSON.stringify(["CVY-002"]),
+        defaultPartNumber: "CVY-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PRS_TONNAGE_SENSOR",
+        machineId: machineMap["prs-250"].id,
+        name: "Strain-Gauge Tonnage Telemetry Sensor",
+        description: "Piezoelectric load cell monitor detecting stamping peak tonnage and die jam.",
+        posX: 0.45, posY: 1.35, posZ: 0.6, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.2, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["sensors"]),
+        allowedPartNumbersJson: JSON.stringify(["SEN-002", "SEN-001"]),
+        defaultPartNumber: "SEN-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PRS_POWER_PANEL",
+        machineId: machineMap["prs-250"].id,
+        name: "Press Automation & Dynamic Braking Cabinet",
+        description: "Double-door industrial enclosure with regenerative braking energy resistors.",
+        posX: 1.15, posY: 1.35, posZ: -0.85, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.6, explodedY: 0.2, explodedZ: -0.4,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-002"]),
+        defaultPartNumber: "CTL-002",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "PRS_LIGHT_CURTAIN",
+        machineId: machineMap["prs-250"].id,
+        name: "Type-4 Safety Light Curtain & Barrier",
+        description: "Optical safety light curtain stopping slide motion if operator reaches into die area.",
+        posX: 0, posY: 1.25, posZ: 0.75, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: 0.2, explodedZ: 0.5,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-001"]),
+        defaultPartNumber: "SFT-001",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  // QAX-100: Coordinate Optical Inspection CMM (6 Mounting Points)
+  await prisma.mountingPoint.createMany({
+    data: [
+      {
+        pointId: "QAX_SCANNING_PROBE",
+        machineId: machineMap["qax-100"].id,
+        name: "5-Axis Renishaw Continuous Scanning Probe",
+        description: "High-precision Z-ram motorized probe head for sub-micron geometric measurement.",
+        posX: 0.16, posY: 1.25, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.2, explodedY: -0.3, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["PRB-5AX"]),
+        defaultPartNumber: "PRB-5AX",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "QAX_TELECENTRIC_CAM",
+        machineId: machineMap["qax-100"].id,
+        name: "4K Telecentric Optical Inspection Vision",
+        description: "Non-contact high-resolution optical vision sensor for 2D profile measurement.",
+        posX: 0.32, posY: 1.25, posZ: 0.18, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: -0.3, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["optics-laser"]),
+        allowedPartNumbersJson: JSON.stringify(["VIS-4KT"]),
+        defaultPartNumber: "VIS-4KT",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "QAX_AIR_SUSPENSION",
+        machineId: machineMap["qax-100"].id,
+        name: "Pneumatic Vibration Isolation System",
+        description: "Active self-leveling pneumatic air spring mounts isolating building vibrations.",
+        posX: 0, posY: 0.22, posZ: 0, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0, explodedY: -0.4, explodedZ: 0,
+        allowedCategorySlugsJson: JSON.stringify(["actuators"]),
+        allowedPartNumbersJson: JSON.stringify(["HYD-CYL"]),
+        defaultPartNumber: "HYD-CYL",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "QAX_SURFACE_SENSOR",
+        machineId: machineMap["qax-100"].id,
+        name: "Granite Thermal Telemetry Sensor",
+        description: "Multi-point precision temperature and structural expansion telemetry.",
+        posX: 0.65, posY: 0.68, posZ: 0.5, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.2, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["sensors"]),
+        allowedPartNumbersJson: JSON.stringify(["SEN-001", "SEN-002"]),
+        defaultPartNumber: "SEN-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "QAX_METROLOGY_WORKSTATION",
+        machineId: machineMap["qax-100"].id,
+        name: "Metrology QA Workstation & PC Console",
+        description: "Ergonomic operator console with dual 4K monitors and CMM motion joystick.",
+        posX: 0.85, posY: 1.05, posZ: -0.65, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.5, explodedY: 0.2, explodedZ: -0.4,
+        allowedCategorySlugsJson: JSON.stringify(["controls"]),
+        allowedPartNumbersJson: JSON.stringify(["CTL-001"]),
+        defaultPartNumber: "CTL-001",
+        maxQuantity: 1,
+      },
+      {
+        pointId: "QAX_ESTOP_STATION",
+        machineId: machineMap["qax-100"].id,
+        name: "Metrology Station Emergency Stop Console",
+        description: "Instant air-bearing lock and motion abort mushroom button.",
+        posX: 0.75, posY: 0.85, posZ: 0.65, rotX: 0, rotY: 0, rotZ: 0,
+        explodedX: 0.3, explodedY: 0.2, explodedZ: 0.3,
+        allowedCategorySlugsJson: JSON.stringify(["safety"]),
+        allowedPartNumbersJson: JSON.stringify(["SFT-002"]),
+        defaultPartNumber: "SFT-002",
+        maxQuantity: 1,
+      },
+    ],
+  });
+
+  console.log("✓ Created Mounting Points for all 10 Machinery Platforms");
 
   // 7. Realistic Compatibility Rules
-  await prisma.compatibilityRule.create({
-    data: {
-      machineId: machineMX500.id,
+  const rulesData = [
+    // MX-500
+    {
+      machineId: machineMap["mx-500"].id,
       name: "10HP Motor Requires >= 4m Conveyor Bed",
-      description:
-        "The high-torque 10HP motor cannot be mounted on short 2m conveyor tracks due to torsional chassis resonance.",
-      ruleType: "DIMENSION_CONSTRAINT",
+      description: "The high-torque 10HP motor cannot be mounted on short 2m conveyor tracks due to torsional chassis resonance.",
+      ruleType: "DIMENSION_CONSTRAINT" as const,
       triggerJson: JSON.stringify({ partNumber: "MTR-010" }),
-      targetJson: JSON.stringify({
-        requiredPartNumbers: ["CVY-004", "CVY-006"],
-        minimumLengthMeters: 4,
-      }),
-      errorMessage:
-        "The 10HP Ultra-Torque Motor (MTR-010) generates high torsional pull and requires at least a 4m (CVY-004) or 6m (CVY-006) conveyor frame for stability.",
+      targetJson: JSON.stringify({ requiredPartNumbers: ["CVY-004", "CVY-006"], minimumLengthMeters: 4 }),
+      errorMessage: "The 10HP Ultra-Torque Motor (MTR-010) generates high torsional pull and requires at least a 4m (CVY-004) or 6m (CVY-006) conveyor frame for stability.",
       isActive: true,
     },
-  });
-
-  await prisma.compatibilityRule.create({
-    data: {
-      machineId: machineMX500.id,
+    {
+      machineId: machineMap["mx-500"].id,
       name: "10HP Motor Requires High-Capacity VFD Controller",
       description: "Standard 7-inch control panel cannot handle 10HP amperage draw.",
-      ruleType: "POWER_CAPACITY",
+      ruleType: "POWER_CAPACITY" as const,
       triggerJson: JSON.stringify({ partNumber: "MTR-010" }),
-      targetJson: JSON.stringify({
-        requiredPartNumbers: ["CTL-002"],
-      }),
-      errorMessage:
-        "The 10HP motor (7.5 kW) exceeds the capacity of the Standard Control Panel (CTL-001). Please equip the High-Capacity Variable Frequency Power Controller (CTL-002).",
+      targetJson: JSON.stringify({ requiredPartNumbers: ["CTL-002"] }),
+      errorMessage: "The 10HP motor (7.5 kW) exceeds the capacity of the Standard Control Panel (CTL-001). Please equip the High-Capacity Variable Frequency Power Controller (CTL-002).",
       isActive: true,
     },
-  });
-
-  await prisma.compatibilityRule.create({
-    data: {
-      machineId: machineMX500.id,
+    {
+      machineId: machineMap["mx-500"].id,
       name: "Motors 5HP and Above Require Emergency Stop Console",
       description: "OSHA & CE safety compliance requires emergency stop mushroom for high-power industrial motors.",
-      ruleType: "REQUIRES",
-      triggerJson: JSON.stringify({
-        partNumbers: ["MTR-005", "MTR-010"],
-        minPowerHP: 5,
-      }),
-      targetJson: JSON.stringify({
-        requiredPartNumbers: ["SFT-002"],
-      }),
-      errorMessage:
-        "OSHA 1910 & ISO 13850 Safety Regulation: Machine drives with 5HP or greater require a dedicated Emergency Stop Console (SFT-002).",
+      ruleType: "REQUIRES" as const,
+      triggerJson: JSON.stringify({ partNumbers: ["MTR-005", "MTR-010"], minPowerHP: 5 }),
+      targetJson: JSON.stringify({ requiredPartNumbers: ["SFT-002"] }),
+      errorMessage: "OSHA 1910 & ISO 13850 Safety Regulation: Machine drives with 5HP or greater require a dedicated Emergency Stop Console (SFT-002).",
       isActive: true,
     },
-  });
-
-  await prisma.compatibilityRule.create({
-    data: {
-      machineId: machineMX500.id,
+    {
+      machineId: machineMap["mx-500"].id,
       name: "Drive Chain Guard is Mandatory for Motor Operation",
       description: "Exposed motor coupling requires physical chain mesh guard.",
-      ruleType: "REQUIRES",
-      triggerJson: JSON.stringify({
-        categorySlug: "motors",
-      }),
-      targetJson: JSON.stringify({
-        requiredPartNumbers: ["SFT-001"],
-      }),
-      errorMessage:
-        "Safety Guard (SFT-001) is required to shield personnel from rotating motor shafts and drive pulleys.",
+      ruleType: "REQUIRES" as const,
+      triggerJson: JSON.stringify({ categorySlug: "motors" }),
+      targetJson: JSON.stringify({ requiredPartNumbers: ["SFT-001"] }),
+      errorMessage: "Safety Guard (SFT-001) is required to shield personnel from rotating motor shafts and drive pulleys.",
       isActive: true,
     },
-  });
 
-  console.log("✓ Created 4 Compatibility Rules");
+    // CNC-3000
+    {
+      machineId: machineMap["cnc-3000"].id,
+      name: "High-Speed Spindle Requires Coolant Mist Extraction",
+      description: "OSHA particulate regulation mandates centrifugal mist collector for 24,000+ RPM coolant operations.",
+      ruleType: "REQUIRES" as const,
+      triggerJson: JSON.stringify({ categorySlug: "tooling" }),
+      targetJson: JSON.stringify({ requiredPartNumbers: ["FLT-MIST"] }),
+      errorMessage: "OSHA Air Quality Standard: High-speed milling electro-spindles generate fine coolant aerosols and require a Coolant Mist Collector (FLT-MIST).",
+      isActive: true,
+    },
 
-  // 8. Create a default saved configuration for demo
-  const mtr5 = await prisma.component.findUniqueOrThrow({ where: { partNumber: "MTR-005" } });
-  const cvy4 = await prisma.component.findUniqueOrThrow({ where: { partNumber: "CVY-004" } });
-  const sen1 = await prisma.component.findUniqueOrThrow({ where: { partNumber: "SEN-001" } });
-  const ctl1 = await prisma.component.findUniqueOrThrow({ where: { partNumber: "CTL-001" } });
-  const sft1 = await prisma.component.findUniqueOrThrow({ where: { partNumber: "SFT-001" } });
-  const sft2 = await prisma.component.findUniqueOrThrow({ where: { partNumber: "SFT-002" } });
+    // PK-1200
+    {
+      machineId: machineMap["pk-1200"].id,
+      name: "Delta High-Speed Pick Requires Vision Camera",
+      description: "Kinematic delta arm requires optical vision camera for part location tracking.",
+      ruleType: "REQUIRES" as const,
+      triggerJson: JSON.stringify({ partNumber: "ROB-DEL" }),
+      targetJson: JSON.stringify({ requiredPartNumbers: ["VIS-4KT"] }),
+      errorMessage: "The Delta Spider Robot (ROB-DEL) operates in dynamic conveyor tracking mode and requires the 4K Vision Camera (VIS-4KT).",
+      isActive: true,
+    },
 
+    // WLD-600
+    {
+      machineId: machineMap["wld-600"].id,
+      name: "4kW Fiber Laser Requires Class-1 Laser Enclosure",
+      description: "Class 4 laser radiation requires full safety barricade and interlocking light guard.",
+      ruleType: "REQUIRES" as const,
+      triggerJson: JSON.stringify({ partNumber: "LSR-004" }),
+      targetJson: JSON.stringify({ requiredPartNumbers: ["SFT-001"] }),
+      errorMessage: "ANSI Z136.1 / EN 60825 Laser Safety: 4kW continuous fiber laser requires certified protective enclosure perimeter (SFT-001).",
+      isActive: true,
+    },
+  ];
+
+  for (const r of rulesData) {
+    await prisma.compatibilityRule.create({ data: r });
+  }
+
+  console.log("✓ Created Multi-Machine Compatibility Rules");
+
+  // 8. Create a default saved configuration and quote for MX-500
+  const mx500Mps = await prisma.mountingPoint.findMany({ where: { machineId: machineMap["mx-500"].id } });
   const demoConfig = await prisma.configuration.create({
     data: {
-      name: "MX-500 Standard Packaging Line",
-      machineId: machineMX500.id,
+      name: "MX-500 High-Throughput Packaging Line",
+      machineId: machineMap["mx-500"].id,
       userId: customerUser.id,
       shareToken: "cfg-mx500-demo-packline",
-      totalPrice: 200000 + 42000 + 85000 + 5000 + 5000 + 65000 + 18500 + 9500, // 430,000 INR
+      totalPrice: 200000 + 42000 + 85000 + 5000 + 5000 + 65000 + 18500 + 9500,
       currency: "INR",
-      totalWeight: 145 + 31 + 115 + 0.8 + 0.8 + 28 + 16 + 2.2, // 338.8 kg
+      totalWeight: 145 + 31 + 115 + 0.8 + 0.8 + 28 + 16 + 2.2,
       totalPower: 3.7 + 0.5,
       status: "SAVED",
       components: {
-        create: [
-          { mountingPointId: mpMotor.id, componentId: mtr5.id, quantity: 1, unitPrice: mtr5.price, totalPrice: mtr5.price },
-          { mountingPointId: mpConveyor.id, componentId: cvy4.id, quantity: 1, unitPrice: cvy4.price, totalPrice: cvy4.price },
-          { mountingPointId: mpSensor1.id, componentId: sen1.id, quantity: 1, unitPrice: sen1.price, totalPrice: sen1.price },
-          { mountingPointId: mpSensor2.id, componentId: sen1.id, quantity: 1, unitPrice: sen1.price, totalPrice: sen1.price },
-          { mountingPointId: mpControl.id, componentId: ctl1.id, quantity: 1, unitPrice: ctl1.price, totalPrice: ctl1.price },
-          { mountingPointId: mpGuard.id, componentId: sft1.id, quantity: 1, unitPrice: sft1.price, totalPrice: sft1.price },
-          { mountingPointId: mpEstop.id, componentId: sft2.id, quantity: 1, unitPrice: sft2.price, totalPrice: sft2.price },
-        ],
+        create: mx500Mps.map((mp) => {
+          const comp = compMap[mp.defaultPartNumber || "SEN-001"];
+          return {
+            mountingPointId: mp.id,
+            componentId: comp.id,
+            quantity: 1,
+            unitPrice: comp.price,
+            totalPrice: comp.price,
+          };
+        }),
       },
     },
   });
 
-  // Create Quote for Demo Config
   await prisma.quote.create({
     data: {
       quoteNumber: "RFQ-2026-0042",
       configurationId: demoConfig.id,
-      machineId: machineMX500.id,
+      machineId: machineMap["mx-500"].id,
       userId: customerUser.id,
       customerName: "Rajesh Sharma",
       companyName: "Apex Precision Engineering",
@@ -677,7 +1607,7 @@ async function main() {
   });
 
   console.log("✓ Created Initial Demo Configuration and RFQ-2026-0042");
-  console.log("🚀 Database Seed Completed Successfully!");
+  console.log("🚀 All 10 Industrial Machines, 10 Categories, and 29 Components Seeded Successfully!");
 }
 
 main()

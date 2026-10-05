@@ -11,13 +11,10 @@ import {
   InstalledComponent,
 } from "@/types/configurator";
 import { ConfiguratorHeader } from "@/components/configurator/ConfiguratorHeader";
-import { ComponentLibraryPanel } from "@/components/configurator/ComponentLibraryPanel";
-import { PropertiesInspectorPanel } from "@/components/configurator/PropertiesInspectorPanel";
-import { ViewerCanvas } from "@/components/configurator/3d/ViewerCanvas";
+import { ProductConfiguratorLayout } from "@/components/configurator/ProductConfiguratorLayout";
 import { BOMBottomDrawer } from "@/components/configurator/BOMBottomDrawer";
 import { SaveConfigModal } from "@/components/configurator/SaveConfigModal";
 import { QuoteModal } from "@/components/configurator/QuoteModal";
-import { Layers, SlidersHorizontal, Compass } from "lucide-react";
 
 interface ConfiguratorClientProps {
   machine: Machine;
@@ -27,6 +24,7 @@ interface ConfiguratorClientProps {
   rules: CompatibilityRule[];
   initialInstalled?: Record<string, InstalledComponent>;
   initialConfigName?: string;
+  startFromScratch?: boolean;
 }
 
 export const ConfiguratorClient: React.FC<ConfiguratorClientProps> = ({
@@ -37,15 +35,12 @@ export const ConfiguratorClient: React.FC<ConfiguratorClientProps> = ({
   rules,
   initialInstalled,
   initialConfigName,
+  startFromScratch = false,
 }) => {
   const initialize = useConfiguratorStore((s) => s.initialize);
-  const isBOMDrawerOpen = useConfiguratorStore((s) => s.isBOMDrawerOpen);
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
-
-  // Mobile active drawer state ('NONE' | 'COMPONENTS' | 'PROPERTIES')
-  const [mobileDrawer, setMobileDrawer] = useState<"NONE" | "COMPONENTS" | "PROPERTIES">("NONE");
 
   // Initialize store on mount
   useEffect(() => {
@@ -56,78 +51,24 @@ export const ConfiguratorClient: React.FC<ConfiguratorClientProps> = ({
       rules,
       categories,
       initialInstalled,
-      initialConfigName || `${machine.name} Custom Configuration`
+      initialConfigName || `${machine.name} ${startFromScratch ? "Scratch Assembly" : "Custom Configuration"}`,
+      startFromScratch
     );
-  }, [machine, mountingPoints, components, rules, categories, initialInstalled, initialConfigName, initialize]);
+  }, [machine, mountingPoints, components, rules, categories, initialInstalled, initialConfigName, startFromScratch, initialize]);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#070b14] text-slate-100 font-sans">
+    <div className="flex flex-col min-h-screen w-full bg-[#070b14] text-slate-100 font-sans">
       {/* Top Header */}
       <ConfiguratorHeader
         onOpenSaveModal={() => setIsSaveModalOpen(true)}
         onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
       />
 
-      {/* Main 3-Column Studio Workspace */}
-      <div className="flex-1 flex relative overflow-hidden">
-        {/* LEFT: Component Library (Desktop & Mobile Drawer) */}
-        <div
-          className={`h-full z-20 transition-transform duration-300 md:translate-x-0 ${
-            mobileDrawer === "COMPONENTS"
-              ? "translate-x-0 absolute inset-y-0 left-0"
-              : "-translate-x-full md:relative md:translate-x-0"
-          }`}
-        >
-          <ComponentLibraryPanel />
-        </div>
-
-        {/* CENTER: Interactive 3D Canvas Studio */}
-        <main className="flex-1 h-full relative overflow-hidden">
-          <ViewerCanvas />
-
-          {/* Mobile Bottom Float Trigger Bar */}
-          <div className="md:hidden absolute bottom-14 left-4 right-4 z-20 flex items-center justify-between gap-2 p-1.5 rounded-xl hud-panel shadow-2xl">
-            <button
-              onClick={() =>
-                setMobileDrawer(mobileDrawer === "COMPONENTS" ? "NONE" : "COMPONENTS")
-              }
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                mobileDrawer === "COMPONENTS"
-                  ? "bg-cyan-600 text-white"
-                  : "bg-slate-800 text-slate-300"
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Components</span>
-            </button>
-
-            <button
-              onClick={() =>
-                setMobileDrawer(mobileDrawer === "PROPERTIES" ? "NONE" : "PROPERTIES")
-              }
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                mobileDrawer === "PROPERTIES"
-                  ? "bg-cyan-600 text-white"
-                  : "bg-slate-800 text-slate-300"
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Properties</span>
-            </button>
-          </div>
-        </main>
-
-        {/* RIGHT: Properties & Validation Inspector (Desktop & Mobile Drawer) */}
-        <div
-          className={`h-full z-20 transition-transform duration-300 md:translate-x-0 ${
-            mobileDrawer === "PROPERTIES"
-              ? "translate-x-0 absolute inset-y-0 right-0"
-              : "translate-x-full md:relative md:translate-x-0"
-          }`}
-        >
-          <PropertiesInspectorPanel />
-        </div>
-      </div>
+      {/* Main Clean Product Configurator Experience */}
+      <ProductConfiguratorLayout
+        onOpenSaveModal={() => setIsSaveModalOpen(true)}
+        onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
+      />
 
       {/* BOTTOM: Bill of Materials Collapsible Dock */}
       <BOMBottomDrawer onOpenQuoteModal={() => setIsQuoteModalOpen(true)} />

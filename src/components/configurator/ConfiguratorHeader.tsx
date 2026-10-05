@@ -19,6 +19,9 @@ import {
   ChevronLeft,
   DollarSign,
   Share2,
+  Boxes,
+  Sparkles,
+  Wand2,
 } from "lucide-react";
 
 interface ConfiguratorHeaderProps {
@@ -42,9 +45,13 @@ export const ConfiguratorHeader: React.FC<ConfiguratorHeaderProps> = ({
   const undo = useConfiguratorStore((s) => s.undo);
   const redo = useConfiguratorStore((s) => s.redo);
   const resetConfiguration = useConfiguratorStore((s) => s.resetConfiguration);
+  const loadRecommendedBaseline = useConfiguratorStore((s) => s.loadRecommendedBaseline);
+  const installedComponents = useConfiguratorStore((s) => s.installedComponents);
   const toggleBOMDrawer = useConfiguratorStore((s) => s.toggleBOMDrawer);
   const isBOMDrawerOpen = useConfiguratorStore((s) => s.isBOMDrawerOpen);
+  const autoFixAllIssues = useConfiguratorStore((s) => s.autoFixAllIssues);
 
+  const installedCount = Object.keys(installedComponents).length;
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
@@ -102,16 +109,26 @@ export const ConfiguratorHeader: React.FC<ConfiguratorHeaderProps> = ({
         <div className="w-[1px] h-3.5 bg-slate-800" />
 
         {/* Validation Status Indicator */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {validation.valid ? (
             <div className="flex items-center gap-1 text-emerald-400 font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Compliant</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 text-red-400 font-medium animate-pulse">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{validation.errors.length} Issue(s)</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-red-400 font-medium animate-pulse">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>{validation.errors.length} Issue(s)</span>
+              </div>
+              <button
+                onClick={() => autoFixAllIssues()}
+                className="px-2 py-0.5 rounded bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition hover:scale-105 active:scale-95"
+                title="1-Click Auto-Fix all issues"
+              >
+                <Wand2 className="w-3 h-3 text-amber-200" />
+                <span>1-Click Fix</span>
+              </button>
             </div>
           )}
         </div>
@@ -154,6 +171,29 @@ export const ConfiguratorHeader: React.FC<ConfiguratorHeaderProps> = ({
         >
           {currency}
         </button>
+
+        {/* Scratch vs Recommended Baseline Switcher */}
+        {installedCount === 0 ? (
+          <button
+            type="button"
+            onClick={loadRecommendedBaseline}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/80 border border-emerald-500/50 hover:bg-emerald-900/80 text-emerald-300 text-xs font-semibold shadow transition"
+            title="Load factory recommended baseline assembly"
+          >
+            <Boxes className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Load Baseline</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={resetConfiguration}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-950/60 border border-slate-700 hover:border-rose-500/50 text-slate-300 hover:text-rose-300 text-xs font-medium transition"
+            title="Unmount all components to configure from an empty bare chassis"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Clear to Scratch</span>
+          </button>
+        )}
 
         {/* Live Total Price Pill */}
         <div

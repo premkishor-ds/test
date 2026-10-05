@@ -77,13 +77,25 @@ export default async function MachineDetailPage({ params }: PageProps) {
               </span>
             </div>
 
-            <Link
-              href={`/configurator/${machine.slug}`}
-              className="px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 flex items-center gap-2 transition hover:scale-105 active:scale-95"
-            >
-              <Wrench className="w-4 h-4" />
-              <span>Launch 3D Configurator</span>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Link
+                href={`/configurator/${machine.slug}?scratch=true`}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition active:scale-95"
+                title="Start with an empty chassis frame and select all components manually"
+              >
+                <Boxes className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Configure from Scratch</span>
+              </Link>
+
+              <Link
+                href={`/configurator/${machine.slug}`}
+                className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 flex items-center justify-center gap-2 transition hover:scale-105 active:scale-95"
+                title="Launch with recommended baseline assembly"
+              >
+                <Wrench className="w-4 h-4" />
+                <span>Launch Recommended</span>
+              </Link>
+            </div>
           </div>
         </div>
 

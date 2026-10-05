@@ -141,4 +141,40 @@ export const industrialMaterials = {
     transparent: true,
     opacity: 0.85,
   }),
+
+  // Polished Black Granite (for CMM Metrology)
+  graniteBlack: new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#0f172a"),
+    roughness: 0.15,
+    metalness: 0.3,
+  }),
+
+  // Carbon Fiber Composite
+  carbonFiber: new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#18181b"),
+    roughness: 0.35,
+    metalness: 0.6,
+  }),
+
+  // Industrial Orange (Robotic Arms & Welders)
+  industrialOrange: new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#ea580c"),
+    roughness: 0.35,
+    metalness: 0.5,
+  }),
+
+  // Heavy Hydraulic Gunmetal Steel
+  hydraulicDark: new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#334155"),
+    roughness: 0.3,
+    metalness: 0.8,
+  }),
+
+  // Glowing Cyan Laser / Sensor Emitter
+  laserCyan: new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#06b6d4"),
+    emissive: new THREE.Color("#22d3ee"),
+    emissiveIntensity: 1.2,
+    roughness: 0.1,
+  }),
 };

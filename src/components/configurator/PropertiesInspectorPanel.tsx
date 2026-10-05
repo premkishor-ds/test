@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useConfiguratorStore } from "@/lib/configurator/configurator-store";
 import { formatCurrency } from "@/lib/configurator/pricing-bom-engine";
 import {
@@ -18,6 +18,8 @@ import {
   Zap,
   Sliders,
   Move,
+  Wand2,
+  Sparkles,
 } from "lucide-react";
 
 export const PropertiesInspectorPanel: React.FC = () => {
@@ -36,6 +38,10 @@ export const PropertiesInspectorPanel: React.FC = () => {
   const installComponent = useConfiguratorStore((s) => s.installComponent);
   const selectMountingPoint = useConfiguratorStore((s) => s.selectMountingPoint);
   const updateComponentCustomSettings = useConfiguratorStore((s) => s.updateComponentCustomSettings);
+  const autoFixIssue = useConfiguratorStore((s) => s.autoFixIssue);
+  const autoFixAllIssues = useConfiguratorStore((s) => s.autoFixAllIssues);
+
+  const [fixFeedback, setFixFeedback] = useState<string | null>(null);
 
   // Selected mounting point data
   const selectedMP = mountingPoints.find(
@@ -53,24 +59,21 @@ export const PropertiesInspectorPanel: React.FC = () => {
     }
   }
 
-  // Auto-resolve helper for validation violations
-  const handleAutoResolve = (partNumberToInstall: string) => {
-    const compToInstall = componentsLibrary.find((c) => c.partNumber === partNumberToInstall);
-    if (!compToInstall) return;
+  // 1-Click Fix Handlers
+  const handle1ClickFixAll = () => {
+    const result = autoFixAllIssues();
+    if (result.fixedCount > 0) {
+      setFixFeedback(`✓ Successfully fixed ${result.fixedCount} issue${result.fixedCount > 1 ? "s" : ""} in 1 click!`);
+      setTimeout(() => setFixFeedback(null), 4000);
+    }
+  };
 
-    // Find compatible mounting point
-    const catSlug = compToInstall.category?.slug || "";
-    const mp = mountingPoints.find((p) => {
-      try {
-        const allowedCats: string[] = JSON.parse(p.allowedCategorySlugsJson || "[]");
-        return allowedCats.includes(catSlug);
-      } catch {
-        return false;
-      }
-    });
-
-    if (mp) {
-      installComponent(mp.id, compToInstall);
+  const handle1ClickFixSingle = (err: any) => {
+    const success = autoFixIssue(err);
+    if (success) {
+      const label = err.quickFix?.label || "Issue resolved";
+      setFixFeedback(`✓ ${label}`);
+      setTimeout(() => setFixFeedback(null), 3500);
     }
   };
 
@@ -120,16 +123,37 @@ export const PropertiesInspectorPanel: React.FC = () => {
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             Compatibility Engine
           </span>
-          <span
-            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-              validation.valid
-                ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
-                : "bg-red-950 text-red-300 border border-red-800"
-            }`}
-          >
-            {validation.valid ? "PASSED" : "VIOLATION"}
-          </span>
+          <div className="flex items-center gap-2">
+            {(!validation.valid || validation.warnings.length > 0) && (
+              <button
+                onClick={handle1ClickFixAll}
+                id="auto-fix-all-btn"
+                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95 animate-pulse"
+                title="Automatically fix all configuration issues in 1 click"
+              >
+                <Wand2 className="w-3 h-3 text-amber-200" />
+                <span>1-Click Fix ({validation.errors.length + validation.warnings.length})</span>
+              </button>
+            )}
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                validation.valid
+                  ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
+                  : "bg-red-950 text-red-300 border border-red-800"
+              }`}
+            >
+              {validation.valid ? "PASSED" : "VIOLATION"}
+            </span>
+          </div>
         </div>
+
+        {/* Temporary Auto-Fix Toast Banner */}
+        {fixFeedback && (
+          <div className="mb-2.5 p-2 rounded-lg bg-emerald-950/90 border border-emerald-500 text-emerald-200 text-xs font-medium flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{fixFeedback}</span>
+          </div>
+        )}
 
         {validation.valid && validation.warnings.length === 0 ? (
           <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-900/60 flex items-start gap-2.5 text-xs text-emerald-300">
@@ -147,7 +171,7 @@ export const PropertiesInspectorPanel: React.FC = () => {
             {validation.errors.map((err, idx) => (
               <div
                 key={`err-${idx}`}
-                className="p-2.5 rounded-lg bg-red-950/40 border border-red-800/80 flex flex-col gap-2"
+                className="p-2.5 rounded-lg bg-red-950/40 border border-red-800/80 flex flex-col gap-2.5"
               >
                 <div className="flex items-start gap-2 text-xs text-red-200">
                   <AlertOctagon className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
@@ -159,39 +183,15 @@ export const PropertiesInspectorPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Auto-Resolve Buttons */}
-                {err.code === "DIMENSION_INCOMPATIBLE" && (
-                  <button
-                    onClick={() => handleAutoResolve("CVY-004")}
-                    className="self-end px-2.5 py-1 rounded bg-red-900/80 hover:bg-red-800 text-white text-[11px] font-semibold transition"
-                  >
-                    Equip 4m Conveyor
-                  </button>
-                )}
-                {err.code === "POWER_INCOMPATIBLE" && (
-                  <button
-                    onClick={() => handleAutoResolve("CTL-002")}
-                    className="self-end px-2.5 py-1 rounded bg-red-900/80 hover:bg-red-800 text-white text-[11px] font-semibold transition"
-                  >
-                    Equip High-Power VFD
-                  </button>
-                )}
-                {err.code === "SAFETY_MANDATORY_ESTOP" && (
-                  <button
-                    onClick={() => handleAutoResolve("SFT-002")}
-                    className="self-end px-2.5 py-1 rounded bg-red-900/80 hover:bg-red-800 text-white text-[11px] font-semibold transition"
-                  >
-                    Install Emergency Stop
-                  </button>
-                )}
-                {err.code === "ENVIRONMENT_INCOMPATIBLE" && (
-                  <button
-                    onClick={() => handleAutoResolve("SEN-002")}
-                    className="self-end px-2.5 py-1 rounded bg-red-900/80 hover:bg-red-800 text-white text-[11px] font-semibold transition"
-                  >
-                    Upgrade to IP67 Sensor
-                  </button>
-                )}
+                {/* 1-Click Auto-Resolve Button for each error */}
+                <button
+                  onClick={() => handle1ClickFixSingle(err)}
+                  className="self-end px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-red-950/60 transition-all hover:scale-105 active:scale-95"
+                  title="Click to automatically fix this issue"
+                >
+                  <Wand2 className="w-3.5 h-3.5 text-amber-200" />
+                  <span>{err.quickFix?.label || "Fix in 1-Click"}</span>
+                </button>
               </div>
             ))}
 
@@ -205,14 +205,14 @@ export const PropertiesInspectorPanel: React.FC = () => {
                   <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <span className="text-[11px] leading-snug">{warn.message}</span>
                 </div>
-                {warn.code === "SAFETY_GUARD_MISSING" && (
-                  <button
-                    onClick={() => handleAutoResolve("SFT-001")}
-                    className="px-2 py-1 rounded bg-amber-800/80 hover:bg-amber-700 text-white text-[10px] font-semibold transition shrink-0"
-                  >
-                    Add Guard
-                  </button>
-                )}
+                <button
+                  onClick={() => handle1ClickFixSingle(warn)}
+                  className="px-2.5 py-1 rounded-md bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold flex items-center gap-1 shadow transition hover:scale-105 active:scale-95 shrink-0"
+                  title="Click to automatically resolve warning"
+                >
+                  <Wand2 className="w-3 h-3 text-amber-100" />
+                  <span>{warn.quickFix?.label || "1-Click Fix"}</span>
+                </button>
               </div>
             ))}
           </div>

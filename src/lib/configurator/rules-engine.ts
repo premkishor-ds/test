@@ -112,6 +112,12 @@ export function evaluateConfigurationRules(
       message:
         "10HP Ultra-Torque Motor cannot be mounted on 2m Conveyor (CVY-002). High starting torque causes structural frame distortion. Upgrade to 4m or 6m conveyor bed.",
       severity: "ERROR",
+      quickFix: {
+        label: "Upgrade to 4m Conveyor (CVY-004)",
+        actionType: "REPLACE",
+        partNumber: "CVY-004",
+        description: "Replaces 2m conveyor bed with 4m high-tensile track",
+      },
     });
   }
 
@@ -126,6 +132,12 @@ export function evaluateConfigurationRules(
       message:
         "10HP motor power draw (7.5 kW) exceeds Standard Control Panel (5.5 kW capacity). Must equip High-Capacity Power Controller (CTL-002).",
       severity: "ERROR",
+      quickFix: {
+        label: "Equip High-Power VFD (CTL-002)",
+        actionType: "REPLACE",
+        partNumber: "CTL-002",
+        description: "Replaces standard panel with 11kW VFD power cabinet",
+      },
     });
   }
 
@@ -140,6 +152,12 @@ export function evaluateConfigurationRules(
       message:
         "OSHA / ISO 13850 Safety Violation: Machines with 5HP or greater drives strictly require a prominent Emergency Stop Console (SFT-002).",
       severity: "ERROR",
+      quickFix: {
+        label: "Install Emergency Stop (SFT-002)",
+        actionType: "INSTALL",
+        partNumber: "SFT-002",
+        description: "Mounts OSHA-compliant red mushroom E-stop console",
+      },
     });
   }
 
@@ -154,6 +172,12 @@ export function evaluateConfigurationRules(
       message:
         "Recommended Safety: Rotating motor drive axle should be shielded with the Reinforced Steel Mesh Safety Guard (SFT-001).",
       severity: "WARNING",
+      quickFix: {
+        label: "Install Drive Guard (SFT-001)",
+        actionType: "INSTALL",
+        partNumber: "SFT-001",
+        description: "Mounts reinforced steel mesh chain guard",
+      },
     });
   }
 
@@ -167,6 +191,12 @@ export function evaluateConfigurationRules(
         message:
           "Hazardous washdown environment selected: Standard Photoelectric Sensor (SEN-001) is not rated for liquids/dust. Upgrade to IP67 Heavy-Duty Sensor (SEN-002).",
         severity: "ERROR",
+        quickFix: {
+          label: "Upgrade to IP67 Sensor (SEN-002)",
+          actionType: "REPLACE",
+          partNumber: "SEN-002",
+          description: "Replaces standard sensor with IP67 telemetry sensor",
+        },
       });
     }
   }
@@ -196,11 +226,20 @@ export function evaluateConfigurationRules(
             // Check if not already covered by our core checks
             const alreadyLogged = errors.some((e) => e.message === rule.errorMessage);
             if (!alreadyLogged) {
+              const reqPart = target.requiredPartNumbers[0];
               errors.push({
                 ruleId: rule.id,
                 code: rule.ruleType,
                 message: rule.errorMessage,
                 severity: "ERROR",
+                quickFix: reqPart
+                  ? {
+                      label: `Install ${reqPart}`,
+                      actionType: "INSTALL",
+                      partNumber: reqPart,
+                      description: rule.name || `Install ${reqPart} to satisfy engineering requirement`,
+                    }
+                  : undefined,
               });
             }
           }

@@ -7,6 +7,7 @@ import {
   InstalledComponent,
   CompatibilityRule,
   HistorySnapshot,
+  ValidationError,
 } from "@/types/configurator";
 import {
   evaluateConfigurationRules,
@@ -96,7 +97,8 @@ export interface ConfiguratorState {
     rules: CompatibilityRule[],
     categories: ComponentCategory[],
     initialInstalled?: Record<string, InstalledComponent>,
-    configName?: string
+    configName?: string,
+    startFromScratch?: boolean
   ) => void;
 
   setDraggingComponent: (component: ComponentItem | null) => void;
@@ -132,11 +134,16 @@ export interface ConfiguratorState {
   toggleShowComponents: () => void;
   toggleBOMDrawer: (force?: boolean) => void;
 
-  // History Actions
+  // History & Baseline Actions
   undo: () => void;
   redo: () => void;
   resetConfiguration: () => void;
+  loadRecommendedBaseline: () => void;
   loadSavedConfiguration: (installed: Record<string, InstalledComponent>, name?: string) => void;
+
+  // 1-Click Auto-Fix Actions
+  autoFixIssue: (issue: ValidationError) => boolean;
+  autoFixAllIssues: () => { fixedCount: number; remainingCount: number };
 }
 
 const emptyPricing: PricingSummary = {
@@ -218,12 +225,13 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
     rules,
     categories,
     initialInstalled = {},
-    configName = "Custom Configuration"
+    configName = "Custom Configuration",
+    startFromScratch = false
   ) => {
-    // If no initial installed provided, auto-install default components on mounting points
+    // If startFromScratch is false and no initial installed provided, auto-install default components
     const finalInstalled: Record<string, InstalledComponent> = { ...initialInstalled };
 
-    if (Object.keys(finalInstalled).length === 0) {
+    if (!startFromScratch && Object.keys(finalInstalled).length === 0) {
       for (const mp of mountingPoints) {
         if (mp.defaultPartNumber) {
           const comp = components.find((c) => c.partNumber === mp.defaultPartNumber);
@@ -245,7 +253,9 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
 
     const initialSnapshot: HistorySnapshot = {
       installedComponents: finalInstalled,
-      description: "Initial Baseline Configuration",
+      description: startFromScratch
+        ? "Initial Bare Chassis (Configured from Scratch)"
+        : "Initial Recommended Baseline Configuration",
     };
 
     set({
@@ -667,6 +677,45 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
     });
   },
 
+  loadRecommendedBaseline: () => {
+    const state = get();
+    if (!state.machine) return;
+
+    const baselineInstalled: Record<string, InstalledComponent> = {};
+    for (const mp of state.mountingPoints) {
+      if (mp.defaultPartNumber) {
+        const comp = state.componentsLibrary.find((c) => c.partNumber === mp.defaultPartNumber);
+        if (comp) {
+          baselineInstalled[mp.id] = {
+            mountingPointId: mp.id,
+            component: comp,
+            quantity: 1,
+          };
+        }
+      }
+    }
+
+    const validation = evaluateConfigurationRules(baselineInstalled, state.rules, {
+      environment: state.environment,
+    });
+    const pricingSummary = calculatePricingAndBOM(state.machine, baselineInstalled, state.currency);
+
+    const snapshot: HistorySnapshot = {
+      installedComponents: baselineInstalled,
+      description: "Loaded Factory Recommended Baseline",
+    };
+
+    set({
+      installedComponents: baselineInstalled,
+      history: [...state.history.slice(0, state.historyIndex + 1), snapshot],
+      historyIndex: state.historyIndex + 1,
+      validation,
+      pricingSummary,
+      selectedMountingPointId: state.mountingPoints[0]?.id || null,
+      selectedComponentId: baselineInstalled[state.mountingPoints[0]?.id]?.component.id || null,
+    });
+  },
+
   loadSavedConfiguration: (installed, name) => {
     const state = get();
     if (!state.machine) return;
@@ -691,5 +740,150 @@ export const useConfiguratorStore = create<ConfiguratorState>((set, get) => ({
       selectedMountingPointId: null,
       selectedComponentId: null,
     });
+  },
+
+  autoFixIssue: (issue: ValidationError) => {
+    const state = get();
+    if (!state.machine) return false;
+
+    // 1. Determine the target part number and action
+    let partNumber = issue.quickFix?.partNumber || issue.partNumber;
+    const actionType = issue.quickFix?.actionType || "INSTALL";
+
+    // If no part number found in quickFix or error object, parse from error message (e.g. "(SFT-001)")
+    if (!partNumber) {
+      const match = issue.message.match(/\(([A-Z0-9-]+)\)/);
+      if (match) {
+        partNumber = match[1];
+      }
+    }
+
+    if (!partNumber) return false;
+
+    const compToInstall = state.componentsLibrary.find((c) => c.partNumber === partNumber);
+    if (!compToInstall) return false;
+
+    const catSlug = compToInstall.category?.slug || "";
+
+    // 2. Identify the target mounting point
+    let targetMountingPoint: MountingPoint | undefined;
+
+    // If replacing an existing incompatible component, find where the offending component is installed
+    if (actionType === "REPLACE") {
+      for (const [mpId, installed] of Object.entries(state.installedComponents)) {
+        if (
+          (issue.code === "DIMENSION_INCOMPATIBLE" && installed.component.category?.slug === "conveyors") ||
+          (issue.code === "POWER_INCOMPATIBLE" && installed.component.category?.slug === "controls") ||
+          (issue.code === "ENVIRONMENT_INCOMPATIBLE" && installed.component.partNumber === "SEN-001") ||
+          installed.component.category?.slug === catSlug
+        ) {
+          targetMountingPoint = state.mountingPoints.find((mp) => mp.id === mpId);
+          if (targetMountingPoint) break;
+        }
+      }
+    }
+
+    // Check preferred mounting point from quickFix or issue
+    if (!targetMountingPoint && issue.quickFix?.targetMountingPointId) {
+      targetMountingPoint = state.mountingPoints.find(
+        (mp) => mp.id === issue.quickFix?.targetMountingPointId || mp.pointId === issue.quickFix?.targetMountingPointId
+      );
+    }
+    if (!targetMountingPoint && issue.mountingPointId) {
+      targetMountingPoint = state.mountingPoints.find(
+        (mp) => mp.id === issue.mountingPointId || mp.pointId === issue.mountingPointId
+      );
+    }
+
+    // If still not found, search through all mounting points that allow this part or category
+    if (!targetMountingPoint) {
+      // 1st choice: unoccupied mounting point that explicitly allows this partNumber
+      targetMountingPoint = state.mountingPoints.find((mp) => {
+        if (state.installedComponents[mp.id]) return false;
+        if (!mp.allowedPartNumbersJson) return false;
+        try {
+          const parts: string[] = JSON.parse(mp.allowedPartNumbersJson);
+          return parts.includes(partNumber!);
+        } catch {
+          return false;
+        }
+      });
+
+      // 2nd choice: unoccupied mounting point that allows this category
+      if (!targetMountingPoint) {
+        targetMountingPoint = state.mountingPoints.find((mp) => {
+          if (state.installedComponents[mp.id]) return false;
+          try {
+            const cats: string[] = JSON.parse(mp.allowedCategorySlugsJson || "[]");
+            return cats.includes(catSlug);
+          } catch {
+            return false;
+          }
+        });
+      }
+
+      // 3rd choice: ANY mounting point that explicitly allows this partNumber
+      if (!targetMountingPoint) {
+        targetMountingPoint = state.mountingPoints.find((mp) => {
+          if (!mp.allowedPartNumbersJson) return false;
+          try {
+            const parts: string[] = JSON.parse(mp.allowedPartNumbersJson);
+            return parts.includes(partNumber!);
+          } catch {
+            return false;
+          }
+        });
+      }
+
+      // 4th choice: ANY mounting point that allows this category
+      if (!targetMountingPoint) {
+        targetMountingPoint = state.mountingPoints.find((mp) => {
+          try {
+            const cats: string[] = JSON.parse(mp.allowedCategorySlugsJson || "[]");
+            return cats.includes(catSlug);
+          } catch {
+            return false;
+          }
+        });
+      }
+    }
+
+    if (!targetMountingPoint) return false;
+
+    // 3. Install the component onto the target mounting point
+    return state.installComponent(targetMountingPoint.id, compToInstall);
+  },
+
+  autoFixAllIssues: () => {
+    let fixedCount = 0;
+    const maxIterations = 6;
+    let iteration = 0;
+
+    while (iteration < maxIterations) {
+      iteration++;
+      const currentValidation = get().validation;
+      const issues = [...currentValidation.errors, ...currentValidation.warnings];
+      if (issues.length === 0) break;
+
+      let fixedInThisPass = false;
+      for (const issue of issues) {
+        const success = get().autoFixIssue(issue);
+        if (success) {
+          fixedCount++;
+          fixedInThisPass = true;
+          break; // re-evaluate remaining issues in next loop pass
+        }
+      }
+
+      if (!fixedInThisPass) {
+        break; // No further issues can be auto-resolved
+      }
+    }
+
+    const finalValidation = get().validation;
+    return {
+      fixedCount,
+      remainingCount: finalValidation.errors.length + finalValidation.warnings.length,
+    };
   },
 }));

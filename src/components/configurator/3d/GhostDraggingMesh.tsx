@@ -10,6 +10,10 @@ import { SensorMesh } from "./SensorMesh";
 import { ControlCabinetMesh } from "./ControlCabinetMesh";
 import { SafetyGuardMesh } from "./SafetyGuardMesh";
 import { EstopMesh } from "./EstopMesh";
+import { ToolingMesh } from "./ToolingMesh";
+import { RoboticArmMesh } from "./RoboticArmMesh";
+import { OpticsLaserMesh } from "./OpticsLaserMesh";
+import { ActuatorMesh } from "./ActuatorMesh";
 
 export const GhostDraggingMesh: React.FC = () => {
   const groupRef = useRef<THREE.Group>(null);
@@ -50,6 +54,10 @@ export const GhostDraggingMesh: React.FC = () => {
     if (catSlug === "conveyors") return <ConveyorMesh component={draggingComponent} isGhost />;
     if (catSlug === "sensors") return <SensorMesh component={draggingComponent} isGhost />;
     if (catSlug === "controls") return <ControlCabinetMesh component={draggingComponent} isGhost />;
+    if (catSlug === "tooling") return <ToolingMesh component={draggingComponent} isGhost />;
+    if (catSlug === "robotics") return <RoboticArmMesh component={draggingComponent} isGhost />;
+    if (catSlug === "optics-laser") return <OpticsLaserMesh component={draggingComponent} isGhost />;
+    if (catSlug === "actuators" || catSlug === "material-feed") return <ActuatorMesh component={draggingComponent} isGhost />;
     if (catSlug === "safety") {
       if (draggingComponent.partNumber === "SFT-002") return <EstopMesh component={draggingComponent} isGhost />;
       return <SafetyGuardMesh component={draggingComponent} isGhost />;

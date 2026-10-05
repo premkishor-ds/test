@@ -12,6 +12,10 @@ import { SensorMesh } from "./SensorMesh";
 import { ControlCabinetMesh } from "./ControlCabinetMesh";
 import { SafetyGuardMesh } from "./SafetyGuardMesh";
 import { EstopMesh } from "./EstopMesh";
+import { ToolingMesh } from "./ToolingMesh";
+import { RoboticArmMesh } from "./RoboticArmMesh";
+import { OpticsLaserMesh } from "./OpticsLaserMesh";
+import { ActuatorMesh } from "./ActuatorMesh";
 
 interface ComponentRendererProps {
   installed: InstalledComponent;
@@ -149,6 +153,18 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     }
     if (catSlug === "controls") {
       return <ControlCabinetMesh component={comp} />;
+    }
+    if (catSlug === "tooling") {
+      return <ToolingMesh component={comp} />;
+    }
+    if (catSlug === "robotics") {
+      return <RoboticArmMesh component={comp} />;
+    }
+    if (catSlug === "optics-laser") {
+      return <OpticsLaserMesh component={comp} />;
+    }
+    if (catSlug === "actuators" || catSlug === "material-feed") {
+      return <ActuatorMesh component={comp} />;
     }
     if (catSlug === "safety") {
       if (comp.partNumber === "SFT-002") {

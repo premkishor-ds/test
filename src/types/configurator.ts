@@ -101,6 +101,14 @@ export interface BOMItemRow {
   dimensions: string;
 }
 
+export interface QuickFixAction {
+  label: string;
+  actionType: "INSTALL" | "REPLACE" | "REMOVE";
+  partNumber: string;
+  targetMountingPointId?: string;
+  description?: string;
+}
+
 export interface ValidationError {
   ruleId?: string;
   code: string;
@@ -108,9 +116,11 @@ export interface ValidationError {
   mountingPointId?: string;
   partNumber?: string;
   severity: "ERROR" | "WARNING";
+  quickFix?: QuickFixAction;
 }
 
 export interface HistorySnapshot {
   installedComponents: Record<string, InstalledComponent>;
   description: string;
 }
+

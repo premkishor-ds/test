@@ -12,12 +12,15 @@ import {
 
 interface PageProps {
   params: Promise<{ machineId: string }>;
+  searchParams?: Promise<{ scratch?: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
-export default async function ConfiguratorPage({ params }: PageProps) {
+export default async function ConfiguratorPage({ params, searchParams }: PageProps) {
   const { machineId } = await params;
+  const sParams = searchParams ? await searchParams : {};
+  const isScratch = sParams.scratch === "true" || sParams.scratch === "1";
 
   // Find machine by slug or ID
   const machine = await prisma.machine.findFirst({
@@ -56,6 +59,7 @@ export default async function ConfiguratorPage({ params }: PageProps) {
       components={components as unknown as ComponentItem[]}
       categories={categories as unknown as ComponentCategory[]}
       rules={machine.compatibilityRules as unknown as CompatibilityRule[]}
+      startFromScratch={isScratch}
     />
   );
 }

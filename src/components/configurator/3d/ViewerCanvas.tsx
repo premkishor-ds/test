@@ -72,7 +72,11 @@ const RaycastDragPlane: React.FC = () => {
   );
 };
 
-export const ViewerCanvas: React.FC = () => {
+interface ViewerCanvasProps {
+  showCADToolbar?: boolean;
+}
+
+export const ViewerCanvas: React.FC<ViewerCanvasProps> = ({ showCADToolbar = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasWebGLError, setHasWebGLError] = useState(false);
@@ -210,8 +214,8 @@ export const ViewerCanvas: React.FC = () => {
         </Suspense>
       </Canvas>
 
-      {/* TOP CENTER: CAD Workspace Engineering Toolbar */}
-      <CADWorkspaceToolbar />
+      {/* TOP CENTER: CAD Workspace Engineering Toolbar (when CAD mode active) */}
+      {showCADToolbar && <CADWorkspaceToolbar />}
 
       {/* TOP LEFT: Machine Model Badge & Coordinate HUD */}
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 pointer-events-none">

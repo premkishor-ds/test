@@ -2,24 +2,24 @@ import * as THREE from "three";
 
 // Pre-configured PBR materials for high visual fidelity and 60 FPS performance
 export const industrialMaterials = {
-  // Machine structural frame (dark charcoal powder-coated steel)
+  // Machine structural frame (powder-coated industrial slate steel)
   chassisSteel: new THREE.MeshStandardMaterial({
-    color: new THREE.Color("#1e2530"),
+    color: new THREE.Color("#3e4c5f"),
     roughness: 0.35,
-    metalness: 0.85,
+    metalness: 0.75,
   }),
 
   // Brushed aluminum extrusions & structural profiles
   brushedAluminum: new THREE.MeshStandardMaterial({
-    color: new THREE.Color("#94a3b8"),
+    color: new THREE.Color("#cbd5e1"),
     roughness: 0.25,
-    metalness: 0.9,
+    metalness: 0.85,
   }),
 
   // Chrome rollers & precision drive shafts
   polishedChrome: new THREE.MeshStandardMaterial({
-    color: new THREE.Color("#e2e8f0"),
-    roughness: 0.1,
+    color: new THREE.Color("#f1f5f9"),
+    roughness: 0.08,
     metalness: 0.98,
   }),
 
@@ -96,6 +96,15 @@ export const industrialMaterials = {
     transparent: true,
     opacity: 0.35,
     side: THREE.DoubleSide,
+  }),
+
+  // Transparent Laser Safety Window Glass (amber/cyan filtered)
+  laserWindowGlass: new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#38bdf8"),
+    transparent: true,
+    opacity: 0.35,
+    roughness: 0.1,
+    metalness: 0.2,
   }),
 
   // Wireframe preview material

@@ -268,55 +268,97 @@ export const BaseMachineMesh: React.FC<BaseMachineMeshProps> = ({ wireframe = fa
   if (slug === "wld-600") {
     return (
       <group position={[0, 0, 0]} name="WLD_600_CHASSIS">
-        {/* Heavy Base Machine Plinth */}
-        <mesh position={[0, 0.25, 0]} material={matChassis} castShadow receiveShadow>
-          <boxGeometry args={[2.6, 0.45, 2.2]} />
+        {/* Heavy Base Machine Plinth (Powder-coated slate steel) */}
+        <mesh position={[0, 0.22, 0]} material={matChassis} castShadow receiveShadow>
+          <boxGeometry args={[2.6, 0.44, 2.2]} />
         </mesh>
-        {/* Class-1 Laser Safety Cabin Corner Posts */}
+
+        {/* Foundation Leveling Pads */}
+        {[-1.15, 1.15].map((x) =>
+          [-0.95, 0.95].map((z) => (
+            <mesh key={`pad-${x}-${z}`} position={[x, 0.04, z]} material={matChrome}>
+              <cylinderGeometry args={[0.08, 0.09, 0.08, 16]} />
+            </mesh>
+          ))
+        )}
+
+        {/* Class-1 Laser Safety Cabin Corner Posts (Industrial Safety Yellow) */}
         {[
           [-1.25, -1.05],
           [-1.25, 1.05],
           [1.25, -1.05],
           [1.25, 1.05],
         ].map(([x, z], idx) => (
-          <mesh key={`post-${idx}`} position={[x, 1.35, z]} material={matChassis} castShadow>
-            <boxGeometry args={[0.08, 1.8, 0.08]} />
+          <mesh key={`post-${idx}`} position={[x, 1.35, z]} material={matYellow} castShadow>
+            <boxGeometry args={[0.08, 1.82, 0.08]} />
           </mesh>
         ))}
-        {/* Laser Protective Enclosure Panels (Rear & Sides) */}
-        <mesh position={[0, 1.35, -1.05]} material={matGranite}>
-          <boxGeometry args={[2.45, 1.6, 0.02]} />
+
+        {/* Upper Perimeter Safety Crown Rail */}
+        <mesh position={[0, 2.25, 0]} material={matYellow}>
+          <boxGeometry args={[2.58, 0.06, 2.18]} />
         </mesh>
-        <mesh position={[-1.25, 1.35, 0]} material={matGranite}>
-          <boxGeometry args={[0.02, 1.6, 2.05]} />
+
+        {/* Rear Wall Enclosure Panel (Solid Powder-Coated Slate with vent louvers) */}
+        <mesh position={[0, 1.35, -1.05]} material={matChassis} castShadow>
+          <boxGeometry args={[2.42, 1.7, 0.03]} />
         </mesh>
-        {/* Front Observation Safety Glass Tint (Green/Gold Laser Rated) */}
-        <mesh position={[0, 1.35, 1.05]} material={industrialMaterials.hmiScreen}>
-          <boxGeometry args={[1.6, 1.1, 0.015]} />
+
+        {/* Left Side Protective Panel with Service Door Frame */}
+        <mesh position={[-1.25, 1.35, 0]} material={matChassis} castShadow>
+          <boxGeometry args={[0.03, 1.7, 2.02]} />
         </mesh>
-        {/* Center Dual-Station Rotary Turntable Bed Plinth */}
-        <mesh position={[0, 0.52, 0.35]} material={matHydraulic} castShadow>
-          <cylinderGeometry args={[0.65, 0.7, 0.15, 32]} />
+
+        {/* Front Observation Safety Glass Tint (Transparent Cyan Laser Safety Window) */}
+        <mesh position={[0, 1.35, 1.05]} material={industrialMaterials.laserWindowGlass}>
+          <boxGeometry args={[1.8, 1.3, 0.02]} />
         </mesh>
-        <mesh position={[0, 0.61, 0.35]} material={matAluminum} castShadow>
-          <cylinderGeometry args={[0.6, 0.6, 0.04, 32]} />
+        {/* Front Safety Window Aluminum Bezel */}
+        <mesh position={[0, 1.35, 1.06]} material={matAluminum}>
+          <boxGeometry args={[1.88, 1.38, 0.01]} />
         </mesh>
-        {/* Center Partition Baffle on Turntable */}
-        <mesh position={[0, 0.85, 0.35]} material={matAluminum}>
-          <boxGeometry args={[0.03, 0.45, 1.18]} />
+
+        {/* Center Dual-Station Rotary Turntable Base Plinth */}
+        <mesh position={[0, 0.52, 0.35]} material={matChassis} castShadow>
+          <cylinderGeometry args={[0.7, 0.75, 0.16, 32]} />
         </mesh>
-        {/* Robot Pedestal Plinth at Rear */}
-        <mesh position={[0, 0.6, -0.5]} material={matChassis} castShadow>
-          <cylinderGeometry args={[0.35, 0.38, 0.35, 24]} />
+        {/* Precision Ground Rotating Aluminum Turntable Deck */}
+        <mesh position={[0, 0.62, 0.35]} material={matAluminum} castShadow receiveShadow>
+          <cylinderGeometry args={[0.65, 0.65, 0.05, 32]} />
         </mesh>
+        {/* Center Partition Radiation Baffle on Turntable */}
+        <mesh position={[0, 0.88, 0.35]} material={matAluminum}>
+          <boxGeometry args={[0.03, 0.48, 1.25]} />
+        </mesh>
+
+        {/* Robot Pedestal Plinth at Rear Center */}
+        <mesh position={[0, 0.6, -0.45]} material={matChassis} castShadow>
+          <cylinderGeometry args={[0.36, 0.4, 0.35, 24]} />
+        </mesh>
+        <mesh position={[0, 0.78, -0.45]} material={matChrome}>
+          <cylinderGeometry args={[0.34, 0.34, 0.03, 24]} />
+        </mesh>
+
         {/* Overhead Fume Exhaust Extraction Collar */}
-        <mesh position={[0, 2.25, 0]} material={matAluminum}>
-          <cylinderGeometry args={[0.2, 0.24, 0.3, 24]} />
+        <mesh position={[0, 2.32, 0]} material={matAluminum}>
+          <cylinderGeometry args={[0.22, 0.25, 0.35, 24]} />
         </mesh>
-        {/* Safety Warning Beacon Mount Bar */}
-        <mesh position={[1.2, 2.25, 1.0]} material={matYellow}>
-          <boxGeometry args={[0.04, 0.2, 0.04]} />
-        </mesh>
+
+        {/* Multi-Color Safety Signal Tower (Andon Light) */}
+        <group position={[1.18, 2.35, 0.95]}>
+          <mesh position={[0, 0.05, 0]} material={matChrome}>
+            <cylinderGeometry args={[0.015, 0.015, 0.1, 12]} />
+          </mesh>
+          <mesh position={[0, 0.12, 0]} material={industrialMaterials.emergencyRed}>
+            <cylinderGeometry args={[0.025, 0.025, 0.04, 12]} />
+          </mesh>
+          <mesh position={[0, 0.16, 0]} material={industrialMaterials.safetyYellow}>
+            <cylinderGeometry args={[0.025, 0.025, 0.04, 12]} />
+          </mesh>
+          <mesh position={[0, 0.20, 0]} material={industrialMaterials.mountPointValid}>
+            <cylinderGeometry args={[0.025, 0.025, 0.04, 12]} />
+          </mesh>
+        </group>
       </group>
     );
   }

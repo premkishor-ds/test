@@ -56,7 +56,7 @@ export const ConfiguratorHeader: React.FC<ConfiguratorHeaderProps> = ({
   const canRedo = historyIndex < history.length - 1;
 
   return (
-    <header className="h-16 border-b border-slate-800 bg-[#090e1a]/95 backdrop-blur px-4 flex items-center justify-between z-30 select-none">
+    <header className="h-16 shrink-0 border-b border-slate-800 bg-[#090e1a]/95 backdrop-blur px-4 flex items-center justify-between z-30 select-none">
       {/* LEFT: Back to catalog & Machine Identity */}
       <div className="flex items-center gap-3">
         <Link

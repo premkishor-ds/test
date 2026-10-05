@@ -22,25 +22,25 @@ export const SceneEnvironment: React.FC = () => {
 
     switch (cameraPreset) {
       case "TOP":
-        camera.position.set(0, 5, 0.01);
-        controls.target.set(0, 0.6, 0);
+        camera.position.set(0, 6.5, 0.01);
+        controls.target.set(0, 0.85, 0);
         break;
       case "FRONT":
-        camera.position.set(0, 1.2, 4);
-        controls.target.set(0, 0.7, 0);
+        camera.position.set(0, 1.4, 5.0);
+        controls.target.set(0, 0.9, 0);
         break;
       case "SIDE":
-        camera.position.set(-4.5, 1.2, 0);
-        controls.target.set(0, 0.7, 0);
+        camera.position.set(-5.5, 1.4, 0);
+        controls.target.set(0, 0.9, 0);
         break;
       case "ISOMETRIC":
-        camera.position.set(-3.2, 2.5, 3.2);
-        controls.target.set(0, 0.6, 0);
+        camera.position.set(-4.0, 3.0, 4.0);
+        controls.target.set(0, 0.85, 0);
         break;
       case "DEFAULT":
       default:
-        camera.position.set(-3.2, 2.2, 2.8);
-        controls.target.set(0, 0.6, 0);
+        camera.position.set(-4.0, 2.6, 3.8);
+        controls.target.set(0, 0.85, 0);
         break;
     }
     controls.update();
@@ -49,16 +49,16 @@ export const SceneEnvironment: React.FC = () => {
   // Handle Camera Reset
   useEffect(() => {
     if (cameraResetTrigger === 0 || !controlsRef.current) return;
-    camera.position.set(-3.2, 2.2, 2.8);
-    controlsRef.current.target.set(0, 0.6, 0);
+    camera.position.set(-4.0, 2.6, 3.8);
+    controlsRef.current.target.set(0, 0.85, 0);
     controlsRef.current.update();
   }, [cameraResetTrigger, camera]);
 
   // Handle Camera Fit
   useEffect(() => {
     if (cameraFitTrigger === 0 || !controlsRef.current) return;
-    camera.position.set(-3.5, 1.8, 3.0);
-    controlsRef.current.target.set(0, 0.6, 0);
+    camera.position.set(-4.5, 2.5, 4.2);
+    controlsRef.current.target.set(0, 0.85, 0);
     controlsRef.current.update();
   }, [cameraFitTrigger, camera]);
 
@@ -71,35 +71,38 @@ export const SceneEnvironment: React.FC = () => {
         enableDamping
         dampingFactor={0.06}
         minDistance={1.2}
-        maxDistance={12}
+        maxDistance={14}
         maxPolarAngle={Math.PI / 2 + 0.05} // Do not allow camera below floor
-        target={[0, 0.6, 0]}
+        target={[0, 0.85, 0]}
       />
 
-      {/* Lighting Rig */}
-      <ambientLight intensity={0.8} />
+      {/* Luminous Studio Lighting Rig */}
+      <ambientLight intensity={1.4} />
 
-      {/* Main Key Sun Light (Warm White) with High Quality Shadow */}
+      {/* Key Sun Light with High Quality Shadow */}
       <directionalLight
-        position={[-6, 8, 6]}
-        intensity={1.4}
+        position={[-6, 10, 7]}
+        intensity={2.0}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-bias={-0.0001}
         shadow-camera-near={0.5}
         shadow-camera-far={25}
-        shadow-camera-left={-4}
-        shadow-camera-right={4}
-        shadow-camera-top={4}
-        shadow-camera-bottom={-4}
+        shadow-camera-left={-5}
+        shadow-camera-right={5}
+        shadow-camera-top={5}
+        shadow-camera-bottom={-5}
       />
 
-      {/* Fill Light (Soft Cool Blue) */}
-      <directionalLight position={[6, 4, -4]} intensity={0.6} color="#93c5fd" />
+      {/* Front Face Illuminator Light */}
+      <directionalLight position={[0, 4, 8]} intensity={1.2} color="#ffffff" />
 
-      {/* Silhouette Rim Light (Cyan Accent) */}
-      <directionalLight position={[0, -2, -6]} intensity={0.4} color="#06b6d4" />
+      {/* Cool Sky Fill Light */}
+      <directionalLight position={[7, 6, -4]} intensity={1.0} color="#bae6fd" />
+
+      {/* Silhouette Cyan Rim Light */}
+      <directionalLight position={[-3, 6, -7]} intensity={0.9} color="#38bdf8" />
 
       {/* Technical Floor CAD Grid */}
       <Grid

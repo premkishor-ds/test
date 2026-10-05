@@ -57,7 +57,7 @@ export const ConfiguratorClient: React.FC<ConfiguratorClientProps> = ({
   }, [machine, mountingPoints, components, rules, categories, initialInstalled, initialConfigName, startFromScratch, initialize]);
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#070b14] text-slate-100 font-sans">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-[#070b14] text-slate-100 font-sans">
       {/* Top Header */}
       <ConfiguratorHeader
         onOpenSaveModal={() => setIsSaveModalOpen(true)}

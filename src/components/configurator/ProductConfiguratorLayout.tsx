@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useConfiguratorStore } from "@/lib/configurator/configurator-store";
 import { ComponentItem, MountingPoint } from "@/types/configurator";
 import { formatCurrency } from "@/lib/configurator/pricing-bom-engine";
@@ -11,8 +11,6 @@ import { ComponentVisualPreview } from "./ComponentVisualPreview";
 import {
   Check,
   CheckCircle2,
-  ChevronRight,
-  ChevronLeft,
   ChevronDown,
   ChevronUp,
   Wand2,
@@ -33,7 +31,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   RotateCcw,
-  SlidersHorizontal,
 } from "lucide-react";
 
 interface ProductConfiguratorLayoutProps {
@@ -63,8 +60,8 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
   const autoFixAllIssues = useConfiguratorStore((s) => s.autoFixAllIssues);
   const loadRecommendedBaseline = useConfiguratorStore((s) => s.loadRecommendedBaseline);
 
-  // Active numbered step (0 to 6)
-  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  // Active step ID in navigation
+  const [activeStepId, setActiveStepId] = useState<string>("step-01");
   // Expandable technical specifications card map
   const [expandedSpecId, setExpandedSpecId] = useState<string | null>(null);
   // CAD Studio Tools drawer toggle for power users
@@ -75,86 +72,77 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
   const [toastFeedback, setToastFeedback] = useState<string | null>(null);
 
   // Scroll container ref for options panel
-  const optionsPanelRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // 1. Definition of the 7 Sequential Numbered Steps
   const configSteps = useMemo(() => {
     return [
       {
-        id: "step-platform",
+        id: "step-01",
         stepNumber: "01",
-        title: "Base Platform",
-        shortTitle: "Base",
+        title: "Platform & Base",
+        shortTitle: "01 Base",
         subtitle: "Industrial machine base chassis, structural envelope, and foundation mounting.",
         icon: Boxes,
         categorySlugs: [], // Base machine overview
       },
       {
-        id: "step-drive",
+        id: "step-02",
         stepNumber: "02",
         title: "Drive & Powertrain",
-        shortTitle: "Drive",
+        shortTitle: "02 Drive",
         subtitle: "Electric induction motors, direct-drive axles, and servo actuation.",
         icon: Zap,
         categorySlugs: ["motors"],
       },
       {
-        id: "step-conveyor",
+        id: "step-03",
         stepNumber: "03",
         title: "Conveyor & Bed",
-        shortTitle: "Conveyor",
+        shortTitle: "03 Conveyor",
         subtitle: "Modular link belts, heavy-duty roller decks, and workpiece tables.",
         icon: Layers,
         categorySlugs: ["conveyors"],
       },
       {
-        id: "step-sensors",
+        id: "step-04",
         stepNumber: "04",
         title: "Sensors & Telemetry",
-        shortTitle: "Sensors",
+        shortTitle: "04 Sensors",
         subtitle: "Optical proximity, laser ToF distance telemetry, and inspection probes.",
         icon: Activity,
         categorySlugs: ["sensors", "optics-laser"],
       },
       {
-        id: "step-controls",
+        id: "step-05",
         stepNumber: "05",
         title: "Controls & Automation",
-        shortTitle: "Controls",
+        shortTitle: "05 Controls",
         subtitle: "Touchscreen HMIs, NEMA 12 PLC enclosures, and VFD power cabinets.",
         icon: Cpu,
         categorySlugs: ["controls"],
       },
       {
-        id: "step-safety",
+        id: "step-06",
         stepNumber: "06",
         title: "Safety & Guarding",
-        shortTitle: "Safety",
+        shortTitle: "06 Safety",
         subtitle: "OSHA safety enclosures, interlocking cages, and emergency stop consoles.",
         icon: ShieldAlert,
         categorySlugs: ["safety"],
       },
       {
-        id: "step-tooling",
+        id: "step-07",
         stepNumber: "07",
         title: "Tooling & Robotics",
-        shortTitle: "Tooling",
+        shortTitle: "07 Tooling",
         subtitle: "High-RPM spindles, articulated arms, grippers, laser optics, and dispensers.",
         icon: Wrench,
         categorySlugs: ["tooling", "robotics", "actuators", "material-feed"],
       },
     ];
   }, []);
-
-  const currentStep = configSteps[activeStepIndex] || configSteps[0];
-
-  // Components available for current step
-  const stepComponents = useMemo(() => {
-    if (currentStep.categorySlugs.length === 0) return [];
-    return componentsLibrary.filter((c) =>
-      currentStep.categorySlugs.includes(c.category?.slug || "")
-    );
-  }, [componentsLibrary, currentStep]);
 
   // Check if a component is currently selected/installed
   const isComponentSelected = (comp: ComponentItem) => {
@@ -269,23 +257,12 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
     setTimeout(() => setToastFeedback(null), 3500);
   };
 
-  // Step Navigation Handlers
-  const handleStepChange = (index: number) => {
-    setActiveStepIndex(index);
-    if (optionsPanelRef.current) {
-      optionsPanelRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const goToNextStep = () => {
-    if (activeStepIndex < configSteps.length - 1) {
-      handleStepChange(activeStepIndex + 1);
-    }
-  };
-
-  const goToPrevStep = () => {
-    if (activeStepIndex > 0) {
-      handleStepChange(activeStepIndex - 1);
+  // Scroll to section handler
+  const scrollToSection = (stepId: string) => {
+    setActiveStepId(stepId);
+    const el = sectionRefs.current[stepId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -301,17 +278,17 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
   const installedCount = Object.keys(installedComponents).length;
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-4rem)] overflow-hidden bg-[#070b14]">
+    <div className="flex-1 flex flex-col lg:flex-row h-full min-h-0 w-full overflow-hidden bg-[#070b14]">
       {/* ======================================================== */}
       {/* 1. LEFT / CENTER: DOMINANT 3D PRODUCT VISUAL STAGE      */}
-      {/* Always visible on desktop so user sees live changes!   */}
+      {/* Takes 58% on desktop, fills full height, always visible!*/}
       {/* ======================================================== */}
-      <section className="w-full lg:w-[58%] xl:w-[60%] h-[48vh] sm:h-[54vh] lg:h-full relative border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-gradient-to-b from-[#090d18] via-[#0b1122] to-[#070b14] overflow-hidden select-none shrink-0">
+      <section className="w-full lg:w-[58%] xl:w-[60%] h-[44vh] sm:h-[48vh] lg:h-full relative border-b lg:border-b-0 lg:border-r border-slate-800/80 bg-gradient-to-b from-[#0a1020] via-[#0c1527] to-[#070b14] overflow-hidden select-none shrink-0 min-h-0">
         {/* Subtle Ambient Radial Highlight */}
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/20 via-transparent to-transparent" />
 
-        {/* The 3D Scene Viewport Canvas */}
-        <div className="w-full h-full">
+        {/* The 3D Scene Viewport Canvas with Bulletproof Absolute Inset */}
+        <div className="absolute inset-0 w-full h-full">
           <ViewerCanvas />
         </div>
 
@@ -329,7 +306,7 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
           </div>
         )}
 
-        {/* Bottom-Left Power Tool: CAD Studio Tools Drawer Toggle */}
+        {/* Bottom-Left Tool: CAD Studio Tools Drawer Toggle */}
         <div className="absolute bottom-4 left-4 z-20 hidden sm:block">
           <button
             onClick={() => setShowCADStudioDrawer((prev) => !prev)}
@@ -361,12 +338,12 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
       {/* 2. RIGHT RAIL: SEQUENTIAL PRODUCT CONFIGURATOR FLOW     */}
       {/* Organized into numbered steps with sticky summary       */}
       {/* ======================================================== */}
-      <section className="w-full lg:w-[42%] xl:w-[40%] h-auto lg:h-full flex flex-col bg-[#070b14] overflow-hidden">
+      <section className="w-full lg:w-[42%] xl:w-[40%] h-[56vh] sm:h-[52vh] lg:h-full flex flex-col min-h-0 bg-[#070b14] overflow-hidden">
         {/* STEP PROGRESS TABS BAR (Sticky at top of right panel) */}
-        <div className="p-2 sm:p-3 bg-[#090e1a]/95 backdrop-blur-md border-b border-slate-800/80 select-none shrink-0">
+        <div className="p-2 sm:p-3 bg-[#090e1a]/95 backdrop-blur-md border-b border-slate-800/80 select-none shrink-0 z-20">
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {configSteps.map((step, idx) => {
-              const isActive = idx === activeStepIndex;
+            {configSteps.map((step) => {
+              const isActive = activeStepId === step.id;
               // Check if any component in this step is equipped
               const isStepConfigured =
                 step.categorySlugs.length > 0 &&
@@ -377,7 +354,7 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
               return (
                 <button
                   key={step.id}
-                  onClick={() => handleStepChange(idx)}
+                  onClick={() => scrollToSection(step.id)}
                   className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all whitespace-nowrap shrink-0 ${
                     isActive
                       ? "bg-cyan-600 text-white shadow-md shadow-cyan-600/30 ring-1 ring-cyan-400"
@@ -393,7 +370,7 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
                   >
                     {step.stepNumber}
                   </span>
-                  <span>{step.shortTitle}</span>
+                  <span>{step.shortTitle.replace(/^\d+\s*/, "")}</span>
                   {isStepConfigured && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   )}
@@ -403,335 +380,313 @@ export const ProductConfiguratorLayout: React.FC<ProductConfiguratorLayoutProps>
           </div>
         </div>
 
-        {/* STEP CONTENT / OPTIONS LIST (Scrollable Center Area) */}
-        <div ref={optionsPanelRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* Step Header */}
-          <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
-            <div>
-              <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
-                <span>STEP {currentStep.stepNumber} OF 07</span>
-                <span>•</span>
-                <span>{currentStep.title}</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                {currentStep.title}
-              </h2>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                {currentStep.subtitle}
-              </p>
-            </div>
+        {/* SEQUENTIAL CONFIGURATION FLOW (Natural Smooth Scroll through All Steps) */}
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-10 scroll-smooth"
+        >
+          {configSteps.map((step, idx) => {
+            const isBaseStep = step.categorySlugs.length === 0;
+            const componentsForStep = componentsLibrary.filter((c) =>
+              step.categorySlugs.includes(c.category?.slug || "")
+            );
 
-            {/* Quick Prev / Next Buttons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={goToPrevStep}
-                disabled={activeStepIndex === 0}
-                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none text-xs font-medium flex items-center gap-1 transition"
-                title="Previous step"
+            return (
+              <div
+                key={step.id}
+                id={step.id}
+                ref={(el) => {
+                  sectionRefs.current[step.id] = el;
+                }}
+                className="space-y-4 pt-2"
               >
-                <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Prev</span>
-              </button>
-              <button
-                onClick={goToNextStep}
-                disabled={activeStepIndex === configSteps.length - 1}
-                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none text-xs font-medium flex items-center gap-1 transition"
-                title="Next step"
-              >
-                <span className="hidden sm:inline">Next</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* STEP 01: Base Platform Overview */}
-          {activeStepIndex === 0 && (
-            <div className="rounded-2xl border border-slate-800 bg-[#0d1424] p-5 sm:p-6 space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
-                      {machine?.modelNumber}
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-xs text-slate-400 border border-slate-800">
-                      {machine?.category}
-                    </span>
+                {/* Section Header */}
+                <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-800/80">
+                  <div>
+                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                      <span>STEP {step.stepNumber} OF 07</span>
+                      <span>•</span>
+                      <span>{step.title}</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                      {step.title}
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      {step.subtitle}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold text-white">{machine?.name}</h3>
-                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                    {machine?.description}
-                  </p>
+
+                  {idx < configSteps.length - 1 && (
+                    <button
+                      onClick={() => scrollToSection(configSteps[idx + 1].id)}
+                      className="hidden sm:flex px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-medium items-center gap-1 transition shrink-0"
+                    >
+                      <span>Jump to Step {configSteps[idx + 1].stepNumber}</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-cyan-400" />
+                    </button>
+                  )}
                 </div>
 
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-semibold">
-                    Base Platform
-                  </span>
-                  <span className="text-xl font-mono font-bold text-white">
-                    {formatCurrency(machine?.basePrice || 0, currency)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Technical Specifications Matrix */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 text-xs font-mono">
-                <div>
-                  <span className="text-slate-500 block text-[10px]">ENVELOPE (L×W×H)</span>
-                  <span className="text-slate-200 font-semibold">{machine?.baseDimensions}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">CHASSIS MASS</span>
-                  <span className="text-slate-200 font-semibold">{machine?.baseWeight} kg</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">POWER SUPPLY</span>
-                  <span className="text-slate-200 font-semibold">{machine?.powerRequirements}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[10px]">PRECISION MOUNT ZONES</span>
-                  <span className="text-cyan-400 font-semibold">{mountingPoints.length} Zones Available</span>
-                </div>
-              </div>
-
-              {/* Quick Baseline Button & Step 02 Progression */}
-              <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    loadRecommendedBaseline();
-                    setToastFeedback("✓ Loaded Recommended Factory Baseline Configuration!");
-                    setTimeout(() => setToastFeedback(null), 3000);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Load Factory Baseline Assembly</span>
-                </button>
-
-                <button
-                  onClick={goToNextStep}
-                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-600/25 transition"
-                >
-                  <span>Configure Drive (02)</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEPS 02 - 07: Large Visual Option Cards */}
-          {activeStepIndex > 0 && (
-            <div className="space-y-4">
-              {stepComponents.length === 0 ? (
-                <div className="p-8 rounded-2xl border border-slate-800 bg-[#0d1424] text-center text-slate-400 text-xs">
-                  No direct components required for this step on this platform. You may proceed to the next step.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {stepComponents.map((comp) => {
-                    const isSelected = isComponentSelected(comp);
-                    const priceDiff = getPriceDifferenceDisplay(comp);
-                    const isSpecExpanded = expandedSpecId === comp.id;
-
-                    // Parse technical specs
-                    let specs: Record<string, string> = {};
-                    try {
-                      specs = JSON.parse(comp.technicalSpecsJson || "{}");
-                    } catch {
-                      specs = {};
-                    }
-
-                    return (
-                      <div
-                        key={comp.id}
-                        onClick={() => handleSelectOption(comp)}
-                        className={`group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer ${
-                          isSelected
-                            ? "bg-[#0f1b32] border-cyan-500 ring-2 ring-cyan-500/30 shadow-xl shadow-cyan-500/15"
-                            : "bg-[#0d1424] border-slate-800/90 hover:border-slate-700 hover:bg-[#0f1728] shadow-md"
-                        }`}
-                      >
-                        {/* Top Indicator Ribbon for Equipped Status */}
-                        {isSelected && (
-                          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-md">
-                            <Check className="w-3.5 h-3.5" />
-                            <span>EQUIPPED</span>
-                          </div>
-                        )}
-
-                        <div className="space-y-3">
-                          {/* Visual Component Preview (Rich SVG Artwork) */}
-                          <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-950/70 border border-slate-800/60 flex items-center justify-center">
-                            <ComponentVisualPreview
-                              categorySlug={comp.category?.slug}
-                              partNumber={comp.partNumber}
-                              name={comp.name}
-                            />
-                          </div>
-
-                          {/* Header: Part Number & Manufacturer */}
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-cyan-300 border border-slate-800">
-                              {comp.partNumber}
-                            </span>
-                            <span className="text-xs text-slate-400 font-medium">
-                              {comp.manufacturer}
-                            </span>
-                          </div>
-
-                          {/* Component Name & Short Description */}
-                          <div>
-                            <h4 className="text-base font-bold text-white group-hover:text-cyan-300 transition">
-                              {comp.name}
-                            </h4>
-                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                              {comp.description}
-                            </p>
-                          </div>
-
-                          {/* Key Specs Pills */}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                            {comp.powerRating && (
-                              <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-amber-300">
-                                ⚡ {comp.powerRating} kW
-                              </span>
-                            )}
-                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
-                              ⚖ {comp.weight} kg
-                            </span>
-                            {comp.dimensions && (
-                              <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
-                                📐 {comp.dimensions}
-                              </span>
-                            )}
-                          </div>
+                {/* 01: Base Platform Chassis Details */}
+                {isBaseStep && (
+                  <div className="rounded-2xl border border-slate-800 bg-[#0d1424] p-5 sm:p-6 space-y-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+                            {machine?.modelNumber}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-xs text-slate-400 border border-slate-800">
+                            {machine?.category}
+                          </span>
                         </div>
+                        <h3 className="text-xl font-bold text-white">{machine?.name}</h3>
+                        <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                          {machine?.description}
+                        </p>
+                      </div>
 
-                        {/* Card Footer: Price Difference & Action Buttons */}
-                        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col gap-2.5">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-[10px] text-slate-400 uppercase font-semibold block tracking-wider">
-                                Price Option
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-semibold">
+                          Base Platform
+                        </span>
+                        <span className="text-xl font-mono font-bold text-white">
+                          {formatCurrency(machine?.basePrice || 0, currency)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Technical Specifications Matrix */}
+                    <div className="grid grid-cols-2 gap-3 bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 text-xs font-mono">
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">ENVELOPE (L×W×H)</span>
+                        <span className="text-slate-200 font-semibold">{machine?.baseDimensions}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">CHASSIS MASS</span>
+                        <span className="text-slate-200 font-semibold">{machine?.baseWeight} kg</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">POWER SUPPLY</span>
+                        <span className="text-slate-200 font-semibold">{machine?.powerRequirements}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">PRECISION MOUNT ZONES</span>
+                        <span className="text-cyan-400 font-semibold">{mountingPoints.length} Zones Available</span>
+                      </div>
+                    </div>
+
+                    {/* Quick Baseline Button */}
+                    <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          loadRecommendedBaseline();
+                          setToastFeedback("✓ Loaded Recommended Factory Baseline Configuration!");
+                          setTimeout(() => setToastFeedback(null), 3000);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 transition"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Load Factory Baseline Assembly</span>
+                      </button>
+
+                      <button
+                        onClick={() => scrollToSection("step-02")}
+                        className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-600/25 transition"
+                      >
+                        <span>Configure Drive Options (02)</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 02 - 07: Large Visual Option Cards Grid */}
+                {!isBaseStep && componentsForStep.length === 0 && (
+                  <div className="p-6 rounded-2xl border border-slate-800/80 bg-[#0d1424]/60 text-slate-400 text-xs text-center">
+                    No optional add-ons required for this category on this platform.
+                  </div>
+                )}
+
+                {!isBaseStep && componentsForStep.length > 0 && (
+                  <div className="grid grid-cols-1 gap-4">
+                    {componentsForStep.map((comp) => {
+                      const isSelected = isComponentSelected(comp);
+                      const priceDiff = getPriceDifferenceDisplay(comp);
+                      const isSpecExpanded = expandedSpecId === comp.id;
+
+                      // Parse technical specs
+                      let specs: Record<string, string> = {};
+                      try {
+                        specs = JSON.parse(comp.technicalSpecsJson || "{}");
+                      } catch {
+                        specs = {};
+                      }
+
+                      return (
+                        <div
+                          key={comp.id}
+                          onClick={() => handleSelectOption(comp)}
+                          className={`group relative rounded-2xl border p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 cursor-pointer ${
+                            isSelected
+                              ? "bg-[#0f1b32] border-cyan-500 ring-2 ring-cyan-500/30 shadow-xl shadow-cyan-500/15"
+                              : "bg-[#0d1424] border-slate-800/90 hover:border-slate-700 hover:bg-[#0f1728] shadow-md"
+                          }`}
+                        >
+                          {/* Top Indicator Ribbon for Equipped Status */}
+                          {isSelected && (
+                            <div className="absolute top-4 right-4 z-10 flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-md">
+                              <Check className="w-3.5 h-3.5" />
+                              <span>EQUIPPED</span>
+                            </div>
+                          )}
+
+                          <div className="space-y-3">
+                            {/* Visual Component Preview (Rich SVG Artwork) */}
+                            <div className="w-full h-32 rounded-xl overflow-hidden bg-slate-950/70 border border-slate-800/60 flex items-center justify-center">
+                              <ComponentVisualPreview
+                                categorySlug={comp.category?.slug}
+                                partNumber={comp.partNumber}
+                                name={comp.name}
+                              />
+                            </div>
+
+                            {/* Header: Part Number & Manufacturer */}
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-cyan-300 border border-slate-800">
+                                {comp.partNumber}
                               </span>
-                              <span
-                                className={`text-sm font-mono font-bold ${
-                                  isSelected
-                                    ? "text-emerald-400"
-                                    : priceDiff.isPositive
-                                    ? "text-cyan-300"
-                                    : "text-slate-300"
-                                }`}
-                              >
-                                {priceDiff.text}
+                              <span className="text-xs text-slate-400 font-medium">
+                                {comp.manufacturer}
                               </span>
                             </div>
 
-                            {/* Secondary Action: Pick & Place in 3D */}
-                            <button
-                              onClick={(e) => handlePickAndPlace(e, comp)}
-                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold flex items-center gap-1.5 transition"
-                              title="Pick up and drag manually into 3D mounting point"
-                            >
-                              <Hand className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>Pick & Place</span>
-                            </button>
+                            {/* Component Name & Short Description */}
+                            <div>
+                              <h4 className="text-base font-bold text-white group-hover:text-cyan-300 transition">
+                                {comp.name}
+                              </h4>
+                              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                {comp.description}
+                              </p>
+                            </div>
+
+                            {/* Key Specs Pills */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              {comp.powerRating && (
+                                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-amber-300">
+                                  ⚡ {comp.powerRating} kW
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
+                                ⚖ {comp.weight} kg
+                              </span>
+                              {comp.dimensions && (
+                                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-300">
+                                  📐 {comp.dimensions}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          {/* Primary 1-Click Card Equip Button */}
-                          <button
-                            onClick={() => handleSelectOption(comp)}
-                            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
-                              isSelected
-                                ? "bg-emerald-950/80 text-emerald-300 border border-emerald-600/50 hover:bg-emerald-900/80 shadow-md"
-                                : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/20"
-                            }`}
-                          >
-                            {isSelected ? (
-                              <>
-                                <Check className="w-3.5 h-3.5" />
-                                <span>Equipped (Active Option)</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>Equip {comp.partNumber}</span>
-                              </>
-                            )}
-                          </button>
+                          {/* Card Footer: Price Difference & Action Buttons */}
+                          <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-col gap-2.5">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-semibold block tracking-wider">
+                                  Price Option
+                                </span>
+                                <span
+                                  className={`text-sm font-mono font-bold ${
+                                    isSelected
+                                      ? "text-emerald-400"
+                                      : priceDiff.isPositive
+                                      ? "text-cyan-300"
+                                      : "text-slate-300"
+                                  }`}
+                                >
+                                  {priceDiff.text}
+                                </span>
+                              </div>
 
-                          {/* Expandable Technical Specifications Accordion */}
-                          <div>
+                              {/* Secondary Action: Pick & Place in 3D */}
+                              <button
+                                onClick={(e) => handlePickAndPlace(e, comp)}
+                                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold flex items-center gap-1.5 transition"
+                                title="Pick up and drag manually into 3D mounting point"
+                              >
+                                <Hand className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>Pick & Place</span>
+                              </button>
+                            </div>
+
+                            {/* Primary 1-Click Card Equip Button */}
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpandedSpecId(isSpecExpanded ? null : comp.id);
-                              }}
-                              className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1 transition"
+                              onClick={() => handleSelectOption(comp)}
+                              className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                                isSelected
+                                  ? "bg-emerald-950/80 text-emerald-300 border border-emerald-600/50 hover:bg-emerald-900/80 shadow-md"
+                                  : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/20"
+                              }`}
                             >
-                              <span>Technical Specifications</span>
-                              {isSpecExpanded ? (
-                                <ChevronUp className="w-3 h-3" />
+                              {isSelected ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Equipped (Active Option)</span>
+                                </>
                               ) : (
-                                <ChevronDown className="w-3 h-3" />
+                                <>
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  <span>Equip {comp.partNumber}</span>
+                                </>
                               )}
                             </button>
 
-                            {isSpecExpanded && Object.keys(specs).length > 0 && (
-                              <div className="mt-2 p-3 rounded-lg bg-slate-950/90 border border-slate-800 text-xs font-mono space-y-1">
-                                {Object.entries(specs).map(([key, val]) => (
-                                  <div key={key} className="flex justify-between gap-2 text-[11px]">
-                                    <span className="text-slate-400">{key}:</span>
-                                    <span className="text-slate-200 font-semibold">{val}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            {/* Expandable Technical Specifications Accordion */}
+                            <div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedSpecId(isSpecExpanded ? null : comp.id);
+                                }}
+                                className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1 transition"
+                              >
+                                <span>Technical Specifications</span>
+                                {isSpecExpanded ? (
+                                  <ChevronUp className="w-3 h-3" />
+                                ) : (
+                                  <ChevronDown className="w-3 h-3" />
+                                )}
+                              </button>
+
+                              {isSpecExpanded && Object.keys(specs).length > 0 && (
+                                <div className="mt-2 p-3 rounded-lg bg-slate-950/90 border border-slate-800 text-xs font-mono space-y-1">
+                                  {Object.entries(specs).map(([key, val]) => (
+                                    <div key={key} className="flex justify-between gap-2 text-[11px]">
+                                      <span className="text-slate-400">{key}:</span>
+                                      <span className="text-slate-200 font-semibold">{val}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Bottom Step Progression Controls */}
-              <div className="pt-4 flex items-center justify-between border-t border-slate-800/80">
-                <button
-                  onClick={goToPrevStep}
-                  className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>Previous Step</span>
-                </button>
-
-                {activeStepIndex < configSteps.length - 1 ? (
-                  <button
-                    onClick={goToNextStep}
-                    className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-cyan-600/25 transition"
-                  >
-                    <span>Next: {configSteps[activeStepIndex + 1]?.shortTitle}</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={onOpenQuoteModal}
-                    className="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xl transition hover:scale-102"
-                  >
-                    <span>Finish & Request Quote</span>
-                    <Send className="w-4 h-4" />
-                  </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+          })}
         </div>
 
         {/* ======================================================== */}
         {/* 3. STICKY CONFIGURATION SUMMARY (Pinned at bottom)      */}
         {/* Compact, clear metrics, compliance, and Quote CTA        */}
         {/* ======================================================== */}
-        <div className="p-3.5 sm:p-4 bg-[#090e1a]/98 backdrop-blur-md border-t border-slate-800/90 shadow-2xl shrink-0 space-y-3 select-none">
+        <div className="p-3.5 sm:p-4 bg-[#090e1a]/98 backdrop-blur-md border-t border-slate-800/90 shadow-2xl shrink-0 space-y-3 select-none z-20">
           {/* Top Row: Machine Identity & Configured Items Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

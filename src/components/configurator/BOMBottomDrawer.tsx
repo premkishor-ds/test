@@ -60,16 +60,17 @@ export const BOMBottomDrawer: React.FC<BOMBottomDrawerProps> = ({ onOpenQuoteMod
     doc.save(`BOM_${machine.modelNumber}_SpecSheet.pdf`);
   };
 
+  if (!isBOMDrawerOpen) {
+    return null;
+  }
+
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-30 transition-all duration-300 ease-in-out border-t border-slate-800 bg-[#090e1a]/98 backdrop-blur shadow-2xl select-none flex flex-col ${
-        isBOMDrawerOpen ? "h-80 sm:h-96" : "h-12"
-      }`}
+      className="fixed inset-x-0 bottom-0 z-50 h-96 sm:h-[420px] transition-all duration-300 ease-in-out border-t border-slate-700 bg-[#090e1a]/98 backdrop-blur-xl shadow-2xl select-none flex flex-col animate-slide-up"
     >
       {/* Drawer Header Handle / Quick Bar */}
       <div
-        onClick={() => toggleBOMDrawer()}
-        className="h-12 px-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition border-b border-slate-800/60"
+        className="h-12 px-4 flex items-center justify-between border-b border-slate-800 bg-slate-900/60"
       >
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
@@ -82,33 +83,13 @@ export const BOMBottomDrawer: React.FC<BOMBottomDrawerProps> = ({ onOpenQuoteMod
           </span>
         </div>
 
-        {/* Quick Summary Pill on collapsed state */}
-        <div className="flex items-center gap-4 text-xs">
-          <div className="hidden md:flex items-center gap-3 text-slate-400 text-[11px] font-mono">
-            <span>Mass: <strong className="text-white">{pricing.totalWeightKg} kg</strong></span>
-            <span>•</span>
-            <span>Power: <strong className="text-white">{pricing.totalPowerKW} kW</strong></span>
-            <span>•</span>
-            <span>Envelope: <strong className="text-white">{pricing.dimensionsSummary}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-emerald-400 text-sm sm:text-base">
-              {formatCurrency(pricing.grandTotal, currency)}
-            </span>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleBOMDrawer();
-              }}
-              className="p-1.5 rounded hover:bg-slate-700 text-slate-300 transition"
-              title={isBOMDrawerOpen ? "Collapse BOM Drawer" : "Expand BOM Drawer"}
-            >
-              {isBOMDrawerOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={() => toggleBOMDrawer(false)}
+          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
+          title="Close BOM Drawer"
+        >
+          <ChevronDown className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Expanded Table & Action Controls */}

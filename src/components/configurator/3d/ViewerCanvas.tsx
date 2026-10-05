@@ -219,22 +219,16 @@ export const ViewerCanvas: React.FC<ViewerCanvasProps> = ({ showCADToolbar = fal
 
       {/* TOP LEFT: Machine Model Badge & Coordinate HUD */}
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 pointer-events-none">
-        <div className="px-3 py-1.5 rounded bg-slate-900/80 backdrop-blur border border-slate-700/60 shadow-lg flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="px-3.5 py-1.5 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/60 shadow-xl flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-xs font-mono font-bold text-white tracking-wider">
-            {machine?.modelNumber || "MX-500-HD"}
+            {machine?.modelNumber || "MX-500"}
           </span>
-          <span className="text-[11px] text-slate-400 border-l border-slate-700 pl-2">
-            60 FPS VSYNC
+          <span className="text-slate-600">•</span>
+          <span className="text-[11px] text-slate-300 font-sans font-medium">
+            3D Interactive Preview
           </span>
         </div>
-
-        {draggingComponent && (
-          <div className="px-3 py-1.5 rounded bg-cyan-950/90 backdrop-blur border border-cyan-500/80 shadow-cyan-500/20 shadow-lg text-[12px] text-cyan-200 flex items-center gap-2">
-            <span className="animate-spin text-cyan-400">❖</span>
-            <span>Hover over glowing marker to mount <strong>{draggingComponent.name}</strong></span>
-          </div>
-        )}
       </div>
 
       {/* TOP RIGHT: Floating Camera & View Controls Toolbar */}

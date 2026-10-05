@@ -1,0 +1,254 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  name           String?
+  company        String?
+  phone          String?
+  passwordHash   String
+  role           String          @default("CUSTOMER") // CUSTOMER, ADMIN, ENGINEER
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  configurations Configuration[]
+  quotes         Quote[]
+  auditLogs      AuditLog[]
+}
+
+model Machine {
+  id                 String              @id @default(cuid())
+  slug               String              @unique
+  name               String
+  modelNumber        String
+  description        String
+  category           String              // Conveyors, Packaging, Robotics, CNC
+  basePrice          Float               @default(0)
+  currency           String              @default("INR") // INR, USD
+  baseWeight         Float               @default(0) // in kg
+  baseDimensions     String              // e.g. "3000 x 800 x 950 mm"
+  powerRequirements  String              // e.g. "415V 3-Phase, 50Hz"
+  modelGlbUrl        String?
+  thumbnailUrl       String?
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  versions           MachineVersion[]
+  mountingPoints     MountingPoint[]
+  compatibilityRules CompatibilityRule[]
+  configurations     Configuration[]
+  quotes             Quote[]
+}
+
+model MachineVersion {
+  id            String   @id @default(cuid())
+  versionNumber String   // e.g. "v1.2.0"
+  notes         String?
+  machineId     String
+  machine       Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+}
+
+model ComponentCategory {
+  id          String      @id @default(cuid())
+  name        String      @unique // Motors, Conveyors, Sensors, Controls, Safety
+  slug        String      @unique
+  description String?
+  icon        String?
+  sortOrder   Int         @default(0)
+  components  Component[]
+}
+
+model Component {
+  id                      String                   @id @default(cuid())
+  partNumber              String                   @unique // e.g. "MTR-005"
+  sku                     String                   @unique
+  name                    String                   // e.g. "5HP Heavy-Duty Motor"
+  description             String
+  categoryId              String
+  category                ComponentCategory        @relation(fields: [categoryId], references: [id])
+  manufacturer            String                   @default("Industrial MechCorp")
+  price                   Float
+  currency                String                   @default("INR")
+  weight                  Float                    // kg
+  dimensions              String                   // e.g. "350 x 220 x 240 mm"
+  powerRating             Float?                   // kW or HP
+  voltage                 String?                  // e.g. "415V"
+  technicalSpecsJson      String                   // JSON string of arbitrary tech specs
+  modelGlbUrl             String?
+  thumbnailUrl            String?
+  mountingRequirements    String?
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  variants                ComponentVariant[]
+  prices                  Price[]
+  configurationComponents ConfigurationComponent[]
+}
+
+model ComponentVariant {
+  id            String    @id @default(cuid())
+  componentId   String
+  component     Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  name          String    // e.g. "Standard IP55", "Explosion Proof IP67"
+  sku           String    @unique
+  priceModifier Float     @default(0)
+  specsJson     String?
+}
+
+model MountingPoint {
+  id                       String    @id @default(cuid())
+  pointId                  String    // e.g. "MOTOR_MOUNT_01", "CONVEYOR_BED_01"
+  machineId                String
+  machine                  Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  name                     String    // Friendly name e.g. "Primary Drive Motor Mount"
+  description              String?
+  posX                     Float     // 3D coordinate X
+  posY                     Float     // 3D coordinate Y
+  posZ                     Float     // 3D coordinate Z
+  rotX                     Float     @default(0) // Rotation Euler X in radians
+  rotY                     Float     @default(0)
+  rotZ                     Float     @default(0)
+  explodedX                Float     @default(0) // Exploded displacement vector
+  explodedY                Float     @default(0)
+  explodedZ                Float     @default(0)
+  allowedCategorySlugsJson String    // JSON array of category slugs e.g. ["motors"]
+  allowedPartNumbersJson   String?   // JSON array of specific allowed component part numbers (or null for all in category)
+  defaultPartNumber        String?   // Optional default component
+  maxQuantity              Int       @default(1)
+  isOccupied               Boolean   @default(false)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  configurationComponents  ConfigurationComponent[]
+}
+
+model CompatibilityRule {
+  id           String   @id @default(cuid())
+  machineId    String?
+  machine      Machine? @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  name         String   // e.g. "10HP Motor Requires >=4m Conveyor"
+  description  String?
+  ruleType     String   // "REQUIRES", "FORBIDS", "DIMENSION_CONSTRAINT", "POWER_CAPACITY", "ENVIRONMENT"
+  triggerJson  String   // e.g. {"partNumber": "MTR-010"} or {"powerMin": 7.5}
+  targetJson   String   // e.g. {"requiredCategories": ["safety"], "requiredPartNumbers": ["CVY-004", "CVY-006"]}
+  errorMessage String   // User-friendly error message e.g. "10HP Motor requires at least a 4m conveyor frame."
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Configuration {
+  id                String                   @id @default(cuid())
+  name              String                   @default("Custom Configuration")
+  machineId         String
+  machine           Machine                  @relation(fields: [machineId], references: [id])
+  userId            String?
+  user              User?                    @relation(fields: [userId], references: [id])
+  shareToken        String?                  @unique
+  totalPrice        Float                    @default(0)
+  currency          String                   @default("INR")
+  totalWeight       Float                    @default(0)
+  totalPower        Float                    @default(0)
+  status            String                   @default("DRAFT") // DRAFT, SAVED, QUOTED, ORDERED
+  bomSnapshotJson   String?                  // JSON representation of BOM items
+  specsSnapshotJson String?                  // JSON of combined specs
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  components        ConfigurationComponent[]
+  bomItems          BOMItem[]
+  quotes            Quote[]
+}
+
+model ConfigurationComponent {
+  id              String        @id @default(cuid())
+  configurationId String
+  configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  mountingPointId String
+  mountingPoint   MountingPoint @relation(fields: [mountingPointId], references: [id])
+  componentId     String
+  component       Component     @relation(fields: [componentId], references: [id])
+  quantity        Int           @default(1)
+  unitPrice       Float
+  totalPrice      Float
+  customSettings  String?       // JSON of optional parameters (e.g. speed, sensor sensitivity)
+  createdAt       DateTime      @default(now())
+}
+
+model BOMItem {
+  id              String        @id @default(cuid())
+  configurationId String
+  configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  partNumber      String
+  name            String
+  category        String
+  quantity        Int
+  unitPrice       Float
+  totalPrice      Float
+  currency        String        @default("INR")
+  weight          Float
+  dimensions      String
+  notes           String?
+}
+
+model Price {
+  id          String    @id @default(cuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  currency    String    @default("INR")
+  amount      Float
+  validFrom   DateTime  @default(now())
+  validTo     DateTime?
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  title     String
+  assetType String   // "GLB", "TEXTURE", "THUMBNAIL", "CAD", "PDF"
+  url       String
+  fileSize  Int?     // bytes
+  mimeType  String?
+  checksum  String?
+  createdAt DateTime @default(now())
+}
+
+model Quote {
+  id               String        @id @default(cuid())
+  quoteNumber      String        @unique // e.g. "RFQ-2026-0042"
+  configurationId  String
+  configuration    Configuration @relation(fields: [configurationId], references: [id])
+  machineId        String
+  machine          Machine       @relation(fields: [machineId], references: [id])
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id])
+  customerName     String
+  companyName      String
+  email            String
+  phone            String
+  country          String
+  message          String?
+  status           String        @default("SUBMITTED") // SUBMITTED, IN_REVIEW, APPROVED, REJECTED, EXPIRED
+  totalQuotedPrice Float
+  currency         String        @default("INR")
+  pdfDocumentUrl   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // "CREATE_MACHINE", "UPDATE_RULE", "SUBMIT_QUOTE", etc.
+  entityType  String   // "Machine", "Component", "Quote", "Rule"
+  entityId    String?
+  detailsJson String?  // JSON details of payload or changes
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}
